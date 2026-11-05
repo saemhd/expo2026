@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Al Rajhi Direct Hajj — Hajj Conference & Exhibition 2026">
+<meta name="theme-color" content="#061A33">
+<link rel="icon" href="assets/favicon.png">
+<title>الراجحي · الحج المباشر | Al Rajhi Direct Hajj</title>
+<link href="vendor/fonts/fonts.css" rel="stylesheet">
+<style>
+:root{
+  --navy:#104C8A; --navy-d:#0A2F57; --ink:#041325; --deep:#061A33;
+  --gold:#D6B05F; --gold-l:#DFBD75; --gold-xl:#F3DDA6; --cream:#FDF7EA;
+  --cyan:#00A5FF; --purple:#6C34B5; --blue:#2F6BB8;
+  --glass:rgba(255,255,255,.055); --line:rgba(223,189,117,.28);
+  --r:26px; --sq:5px;
+  --ff:'Tajawal',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:auto;background:var(--deep)}
+body{font-family:var(--ff);color:#fff;background:var(--deep);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:var(--gold);color:var(--ink)}
+body.kiosk{cursor:none}
+body.kiosk::-webkit-scrollbar{display:none}
+
+/* ---------- canvas + atmosphere ---------- */
+#gl{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block}
+.scrim{display:none;position:fixed;inset:auto 0 0 0;height:68vh;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(4,20,40,.82) 45%,rgba(4,20,40,.94))}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 45%,transparent 45%,rgba(2,10,22,.75) 100%)}
+.grain{position:fixed;inset:-50%;z-index:2;pointer-events:none;opacity:.06;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation:grain 1.2s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}50%{transform:translate(-3%,2%)}100%{transform:translate(2%,-3%)}}
+
+/* ---------- loader ---------- */
+#loader{position:fixed;inset:0;z-index:100;background:var(--deep);display:grid;place-items:center;transition:opacity 1.1s ease,visibility 1.1s}
+#loader.done{opacity:0;visibility:hidden}
+#loader img{width:min(260px,52vw);opacity:0;animation:fadeUp 1.2s .2s forwards}
+#loader .bar{width:min(220px,46vw);height:2px;margin:26px auto 0;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+#loader .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-xl));transition:width .5s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- header ---------- */
+header.top{position:fixed;top:0;inset-inline:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+  padding:22px clamp(18px,4vw,56px);pointer-events:none}
+header.top>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:18px}
+.brand img{height:clamp(34px,4vw,48px);display:block}
+.brand .sep{width:1px;height:34px;background:rgba(255,255,255,.3)}
+.brand .sub{line-height:1.15;font-weight:700;font-size:14px;letter-spacing:.2px}
+.brand .sub small{display:block;font-weight:500;color:var(--gold-l);font-size:12.5px;letter-spacing:.6px}
+.tools{display:flex;gap:10px;align-items:center}
+.pill{font-family:var(--ff);font-weight:700;font-size:14px;color:#fff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:10px 16px;border-radius:999px;cursor:pointer;transition:.3s;display:flex;align-items:center;gap:8px}
+.pill:hover{border-color:var(--gold);color:var(--gold-xl)}
+.pill svg{width:16px;height:16px}
+
+/* side nav */
+nav.dots{position:fixed;inset-inline-end:clamp(12px,2vw,28px);top:50%;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:14px}
+nav.dots a{position:relative;display:block;width:10px;height:10px;border-radius:3px 3px 3px 0;background:rgba(255,255,255,.25);transition:.35s}
+nav.dots a.on{background:var(--gold);transform:scale(1.35)}
+nav.dots a span{position:absolute;inset-inline-end:22px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:13px;font-weight:700;
+  opacity:0;transition:.3s;color:var(--gold-xl);pointer-events:none}
+nav.dots a:hover span,nav.dots a.on span{opacity:1}
+nav.dots a.on span{opacity:.0}
+nav.dots:hover a.on span{opacity:1}
+
+/* map labels */
+#labels{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden}
+.lab{position:absolute;left:0;top:0;opacity:0;transition:opacity .4s;will-change:transform}
+.lab i{position:absolute;left:0;top:0;width:34px;height:1px;background:linear-gradient(90deg,var(--gold-xl),transparent);transform:translate(8px,-14px) rotate(-30deg);transform-origin:left}
+.lab span{position:absolute;left:36px;top:-38px;white-space:nowrap;font-size:13px;font-weight:800;color:#fff;padding:5px 11px;border-radius:5px 12px 12px 12px;
+  background:rgba(6,26,51,.72);border:1px solid rgba(223,189,117,.35);backdrop-filter:blur(6px)}
+.lab.on span{background:rgba(214,176,95,.92);color:#1d1404;border-color:var(--gold-xl)}
+/* ---------- layout ---------- */
+main{position:relative;z-index:5}
+section{position:relative;min-height:100vh;padding:clamp(118px,15vh,156px) clamp(20px,6vw,96px) clamp(56px,8vh,90px);display:flex;align-items:center}
+.col{width:min(620px,100%)}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:clamp(13px,1.1vw,15px);color:var(--gold-l);letter-spacing:.5px;margin-bottom:18px}
+.eyebrow::before{content:"";width:28px;height:2px;background:linear-gradient(90deg,var(--gold),transparent)}
+[dir=rtl] .eyebrow::before{background:linear-gradient(-90deg,var(--gold),transparent)}
+h1,h2{font-weight:800;line-height:1.12;letter-spacing:-.3px}
+h1{font-size:clamp(38px,4.9vw,80px)}
+h2{font-size:clamp(32px,4.2vw,64px)}
+h3{font-weight:800;font-size:clamp(19px,1.6vw,24px);line-height:1.3}
+p.lead{text-shadow:0 2px 18px rgba(3,14,30,.9);font-size:clamp(16px,1.35vw,20px);line-height:1.85;color:rgba(255,255,255,.86);font-weight:400;margin-top:20px}
+.gold{background:linear-gradient(100deg,#B98C3A 0%,var(--gold-xl) 38%,var(--gold) 62%,#C99A45 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.muted{color:rgba(255,255,255,.62)}
+
+/* glass "darj" card – one square corner (from the R icon) */
+.card{position:relative;background:linear-gradient(160deg,rgba(18,48,92,.62),rgba(6,22,46,.5));border:1px solid rgba(255,255,255,.12);
+  border-radius:var(--sq) var(--r) var(--r) var(--r);backdrop-filter:blur(16px) saturate(130%);-webkit-backdrop-filter:blur(16px) saturate(130%);
+  padding:clamp(20px,2vw,30px);box-shadow:0 30px 60px -30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08)}
+[dir=ltr] .card{border-radius:var(--r) var(--sq) var(--r) var(--r)}
+.card::after{content:"";position:absolute;inset-inline-start:0;top:22px;bottom:22px;width:3px;border-radius:3px;background:linear-gradient(var(--gold-xl),var(--gold))}
+.card.noacc::after{display:none}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(34px);filter:blur(6px);transition:opacity 1s cubic-bezier(.2,.7,.2,1),transform 1s cubic-bezier(.2,.7,.2,1),filter 1s}
+.in .rv,.rv.in{opacity:1;transform:none;filter:none}
+.in .rv:nth-child(2){transition-delay:.08s}.in .rv:nth-child(3){transition-delay:.16s}.in .rv:nth-child(4){transition-delay:.24s}
+.in .rv:nth-child(5){transition-delay:.32s}.in .rv:nth-child(6){transition-delay:.40s}
+
+/* ---------- HERO ---------- */
+#hero .col{width:min(760px,100%)}
+.ayah{font-family:'Amiri',serif;font-size:clamp(18px,1.7vw,26px);color:var(--gold-xl);line-height:1.9;margin-bottom:26px;opacity:.95}
+.ayah small{display:block;font-family:var(--ff);font-size:13px;color:rgba(255,255,255,.5);margin-top:2px}
+[lang=en] .ayah{font-family:'Amiri',serif}
+.scrollhint{position:absolute;bottom:34px;inset-inline-start:clamp(20px,6vw,96px);display:flex;align-items:center;gap:12px;font-size:13px;font-weight:700;color:rgba(255,255,255,.6)}
+.scrollhint i{width:22px;height:36px;border:1.5px solid rgba(255,255,255,.4);border-radius:12px;position:relative}
+.scrollhint i::after{content:"";position:absolute;left:50%;top:7px;width:3px;height:7px;margin-left:-1.5px;border-radius:2px;background:var(--gold);animation:wheel 1.8s infinite}
+@keyframes wheel{0%{opacity:0;transform:translateY(0)}30%{opacity:1}100%{opacity:0;transform:translateY(12px)}}
+.event{display:inline-flex;margin-top:34px;gap:14px;align-items:center;padding:12px 18px 12px 22px;border-radius:var(--sq) 18px 18px 18px;
+  background:rgba(214,176,95,.1);border:1px solid var(--line);font-weight:700;font-size:15px}
+.event b{color:var(--gold-xl)}
+
+/* ---------- WORLD ---------- */
+.bigstats{display:flex;gap:clamp(24px,4vw,60px);margin-top:30px;flex-wrap:wrap}
+.bigstats .n{font-size:clamp(56px,7vw,110px);font-weight:900;line-height:1}
+.bigstats .l{font-weight:700;font-size:clamp(15px,1.2vw,18px);color:rgba(255,255,255,.75);margin-top:6px}
+.regions{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+.regions button{font-family:var(--ff);font-weight:700;font-size:14px;color:#fff;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);
+  padding:10px 16px;border-radius:var(--sq) 14px 14px 14px;cursor:pointer;transition:.3s}
+.regions button.on,.regions button:hover{background:rgba(214,176,95,.18);border-color:var(--gold);color:var(--gold-xl)}
+.regions button em{font-style:normal;opacity:.6;margin-inline-start:6px;font-weight:500}
+.clist{margin-top:16px;min-height:52px;font-size:14.5px;line-height:1.9;color:rgba(255,255,255,.7)}
+
+/* ---------- ABOUT ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}
+.vm h3{display:flex;align-items:center;gap:10px;color:var(--gold-xl);margin-bottom:10px}
+.vm p{line-height:1.85;color:rgba(255,255,255,.8);font-size:15.5px}
+
+/* ---------- JOURNEY ---------- */
+#journey{height:1050vh;display:block;padding:0}
+#journey .stick{position:sticky;top:0;height:100vh;display:flex;align-items:center;padding:0 clamp(20px,6vw,96px)}
+.jhead{position:absolute;top:clamp(110px,14vh,150px);inset-inline-start:clamp(20px,6vw,96px)}
+.jhead h2{font-size:clamp(28px,3.2vw,48px)}
+.jcard{width:min(520px,100%);min-height:350px;position:relative}
+.jstep{position:absolute;inset:clamp(20px,2vw,30px);opacity:0;transform:translateY(24px);transition:opacity .7s,transform .7s;pointer-events:none}
+.jstep.on{opacity:1;transform:none;pointer-events:auto}
+.jnum{font-size:clamp(70px,8vw,120px);font-weight:900;line-height:.9}
+.jicon{width:58px;height:58px;border-radius:var(--sq) 18px 18px 18px;display:grid;place-items:center;background:rgba(214,176,95,.14);border:1px solid var(--line);margin-bottom:16px}
+.jicon svg{width:30px;height:30px;stroke:var(--gold-xl);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.jstep h3{font-size:clamp(24px,2.3vw,34px);margin:10px 0 10px}
+.jstep p{font-size:clamp(16px,1.25vw,19px);line-height:1.85;color:rgba(255,255,255,.8)}
+.rail{position:absolute;bottom:clamp(28px,6vh,60px);inset-inline-start:clamp(20px,6vw,96px);inset-inline-end:clamp(20px,6vw,96px);display:flex;gap:8px;align-items:center}
+.rail span{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.14);position:relative;overflow:hidden}
+.rail span i{position:absolute;inset:0;background:linear-gradient(90deg,var(--gold),var(--gold-xl));transform-origin:right;transform:scaleX(0)}
+[dir=ltr] .rail span i{transform-origin:left}
+.rail b{font-size:13px;font-weight:800;color:var(--gold-xl);min-width:46px;text-align:center}
+
+/* ---------- SERVICES ---------- */
+.svc{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:34px}
+.svc .card{padding:24px 20px;min-height:200px;transform-style:preserve-3d;transition:transform .25s ease,border-color .3s}
+.svc .card:hover{border-color:var(--line)}
+.svc svg{width:38px;height:38px;stroke:var(--gold-xl);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin-bottom:18px}
+.svc h3{font-size:18px}
+.svc p{font-size:14px;line-height:1.7;color:rgba(255,255,255,.66);margin-top:8px}
+.tiers{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px;align-items:center}
+.tiers .t{padding:10px 18px;border-radius:var(--sq) 14px 14px 14px;font-weight:800;font-size:15px}
+.tiers .t1{background:rgba(47,107,184,.35);border:1px solid rgba(110,160,230,.4)}
+.tiers .t2{background:rgba(214,176,95,.22);border:1px solid var(--line);color:var(--gold-xl)}
+.tiers .t3{background:rgba(108,52,181,.35);border:1px solid rgba(160,120,230,.4)}
+.wide{width:100%}
+
+/* ---------- CAMPS ---------- */
+#camps{overflow:hidden}
+#camps .photo{position:absolute;inset:0;z-index:-1;background:url(assets/ph/mina.webp) center/cover;opacity:.0;transition:opacity 1.4s;
+  mask-image:linear-gradient(180deg,transparent 0%,#000 30%,#000 60%,transparent 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 30%,#000 60%,transparent 100%)}
+#camps.in .photo{opacity:.16}
+.camps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}
+.camp .k{font-size:clamp(34px,3.2vw,48px);font-weight:900;line-height:1;margin:14px 0 4px}
+.camp .kl{font-size:13.5px;color:rgba(255,255,255,.6);font-weight:700}
+.camp p{font-size:14.5px;line-height:1.8;color:rgba(255,255,255,.75);margin-top:12px}
+.tag{display:inline-block;font-size:12px;font-weight:800;padding:5px 10px;border-radius:var(--sq) 10px 10px 10px;background:rgba(214,176,95,.16);color:var(--gold-xl)}
+.days{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:26px;position:relative}
+.days::before{content:"";position:absolute;top:13px;inset-inline:6%;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.day{text-align:center;padding:0 8px;position:relative}
+.day i{display:block;width:14px;height:14px;margin:6px auto 14px;background:var(--gold);border-radius:3px 7px 7px 7px;box-shadow:0 0 18px var(--gold)}
+.day b{display:block;font-size:15px;color:var(--gold-xl)}
+.day span{display:block;font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;line-height:1.6}
+
+/* ---------- NUMBERS (CSS 3D staircase) ---------- */
+#numbers .wrap{display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:center;width:100%}
+.stage3d{perspective:1400px;height:min(62vh,560px);display:flex;align-items:flex-end;justify-content:center}
+.stairs{display:flex;align-items:flex-end;gap:clamp(10px,1.4vw,22px);transform-style:preserve-3d;transform:rotateX(-14deg) rotateY(-24deg);transition:transform .4s ease-out}
+.bar{--h:200px;--d:46px;--c:#104C8A;--c2:#0a3566;position:relative;width:clamp(96px,9vw,150px);height:0;transform-style:preserve-3d;transition:height 1.6s cubic-bezier(.2,.8,.2,1)}
+#numbers.in .bar{height:var(--h)}
+.bar .f,.bar .s,.bar .tp{position:absolute;backface-visibility:hidden}
+.bar .f{inset:0;background:linear-gradient(180deg,var(--c),var(--c2));border-radius:4px 22px 0 0;transform:translateZ(calc(var(--d)/2));
+  display:flex;flex-direction:column;justify-content:flex-start;padding:16px 12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.bar .s{top:0;bottom:0;width:var(--d);right:0;background:linear-gradient(180deg,var(--c2),rgba(0,0,0,.5));transform:rotateY(90deg) translateZ(calc(var(--d)/-2));transform-origin:right center;transform:translateX(calc(var(--d)/2)) rotateY(90deg)}
+.bar .tp{left:0;right:0;height:var(--d);top:0;background:linear-gradient(90deg,var(--c),#fff3);transform-origin:top center;transform:translateY(calc(var(--d)/-2)) rotateX(90deg);border-radius:4px 22px 0 0;opacity:.85}
+.bar .v{font-weight:900;font-size:clamp(20px,2vw,30px);line-height:1;white-space:nowrap}
+.bar .lb{font-weight:700;font-size:12.5px;opacity:.85;margin-top:6px;line-height:1.35}
+.b1{--c:#E4C27E;--c2:#B58A3C;color:#2a1c05}
+.b2{--c:#1C9BEF;--c2:#0b5d97}
+.b3{--c:#7E4CC9;--c2:#4a2486}
+.b4{--c:#1E5FA8;--c2:#0b2f5a}
+.minis{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:28px}
+.minis .card{padding:18px 20px}
+.minis .n{font-size:clamp(30px,2.8vw,42px);font-weight:900;line-height:1}
+.minis .l{font-size:13.5px;color:rgba(255,255,255,.68);font-weight:700;margin-top:6px}
+
+/* ---------- WHY ---------- */
+.why{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:32px}
+.why .card h3{font-size:17.5px;line-height:1.55;font-weight:700}
+.why .ic{width:44px;height:44px;border-radius:var(--sq) 14px 14px 14px;display:grid;place-items:center;background:rgba(214,176,95,.15);margin-bottom:16px}
+.why .ic svg{width:24px;height:24px;stroke:var(--gold-xl);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.values{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.values span{padding:12px 20px;border-radius:var(--sq) 16px 16px 16px;border:1px solid var(--line);background:rgba(16,76,138,.35);font-weight:700;font-size:15px}
+
+/* ---------- MOMENTS (3D ring) ---------- */
+#moments{flex-direction:column;justify-content:center;overflow:hidden}
+#moments .head{width:100%;text-align:center}
+#moments .head .eyebrow{justify-content:center}
+.ringwrap{perspective:1800px;width:100%;height:min(66vh,620px);margin-top:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(14px,2.4vh,26px);cursor:grab;touch-action:pan-y}
+.ringwrap:active{cursor:grabbing}
+.ring{position:relative;width:clamp(240px,22vw,380px);height:min(29vh,250px);transform-style:preserve-3d;flex:none}
+.ring figure{position:absolute;inset:0;border-radius:var(--sq) 20px 20px 20px;overflow:hidden;border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.6);backface-visibility:hidden;background:#0b2340}
+.ring figure img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.05)}
+.ring figure::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(4,19,37,.55))}
+.reflect{position:absolute;bottom:-6%;width:70%;height:30%;left:15%;background:radial-gradient(closest-side,rgba(214,176,95,.18),transparent);filter:blur(10px)}
+
+/* ---------- PARTNERS ---------- */
+#partners{flex-direction:column;justify-content:center}
+#partners .head{width:100%}
+.marq{width:100%;overflow:hidden;margin-top:22px;mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+.marq .tr{display:flex;gap:14px;width:max-content;animation:mq 50s linear infinite}
+.marq.rev .tr{animation-direction:reverse;animation-duration:60s}
+@keyframes mq{to{transform:translateX(50%)}}
+.marq span{white-space:nowrap;padding:14px 24px;border-radius:var(--sq) 16px 16px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);font-weight:700;font-size:16px}
+.marq span b{color:var(--gold-l);font-weight:800;margin-inline-end:8px;font-size:12px;letter-spacing:.4px}
+.pgroups{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+/* ---------- PACKAGES ---------- */
+.pktoggle{display:inline-flex;gap:6px;margin-top:22px;padding:6px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+.pktoggle button{font-family:var(--ff);font-weight:800;font-size:15px;color:rgba(255,255,255,.75);background:none;border:0;padding:10px 20px;border-radius:999px;cursor:pointer;transition:.3s}
+.pktoggle button.on{background:linear-gradient(100deg,#C99A45,var(--gold-xl));color:#241703}
+.pkgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.pk{padding:22px 22px 18px}
+.pk .tier{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pk h3{font-size:clamp(20px,1.6vw,24px)}
+.pk .stars{color:var(--gold-xl);font-size:15px;letter-spacing:2px}
+.pk p.d{font-size:14px;line-height:1.7;color:rgba(255,255,255,.7);margin:8px 0 12px;min-height:48px}
+.pk dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:12px}
+.pk dt{color:var(--gold-l);font-weight:700}
+.pk dd{font-weight:700}
+.pk .dur{margin-top:12px;display:inline-block;font-weight:800;font-size:14px;padding:6px 12px;border-radius:var(--sq) 12px 12px 12px;background:rgba(214,176,95,.16);color:var(--gold-xl)}
+.pkinc{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:18px}
+.pkinc b{font-weight:800;color:var(--gold-l);font-size:14px;margin-inline-end:4px}
+.pkinc span{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;padding:8px 14px;border-radius:var(--sq) 14px 14px 14px;background:rgba(16,76,138,.4);border:1px solid rgba(255,255,255,.12)}
+.pkinc span svg{width:18px;height:18px;stroke:var(--gold-xl);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pkinc .note{background:none;border:0;color:rgba(255,255,255,.65);font-weight:500;padding:4px 0}
+.pk.swap{animation:pkin .6s cubic-bezier(.2,.7,.2,1)}
+@keyframes pkin{from{opacity:0;transform:translateY(16px) rotateX(8deg)}to{opacity:1;transform:none}}
+/* ---------- CHARTS ---------- */
+.charts2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}
+.chart{padding:24px 26px}
+.chart .ch{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;gap:10px}
+.chart .ch h3{font-size:19px}
+.chart .ch .tot{font-weight:900;font-size:clamp(30px,2.6vw,40px);line-height:1}
+.chart .ch .tot small{display:block;font-size:12.5px;font-weight:700;color:rgba(255,255,255,.6);text-align:end;margin-top:4px}
+.brow{display:grid;grid-template-columns:minmax(110px,max-content) 1fr 52px;align-items:center;gap:12px;padding:7px 0;position:relative}
+.brow .lb{font-weight:700;font-size:14.5px;white-space:nowrap}
+.brow .tk{height:12px;border-radius:3px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+.brow .tk i{position:absolute;inset-block:0;inset-inline-start:0;width:0;border-radius:0 4px 4px 0;background:linear-gradient(90deg,#B98C3A,var(--gold-xl));transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+[dir=rtl] .brow .tk i{border-radius:4px 0 0 4px;background:linear-gradient(-90deg,#B98C3A,var(--gold-xl))}
+.brow .vl{font-weight:800;font-size:15px;text-align:end;font-variant-numeric:tabular-nums}
+.brow .sub{grid-column:1/-1;font-size:12px;color:rgba(255,255,255,.5);margin-top:-4px}
+.brow:hover .tk{background:rgba(255,255,255,.12)} .brow:hover .lb{color:var(--gold-xl)}
+.pswrap{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;margin-top:28px;align-items:start}
+.pshero{display:grid;gap:14px}
+.pshero .card{padding:22px}
+.pshero .n{font-size:clamp(40px,3.6vw,56px);font-weight:900;line-height:1}
+.pshero .l{font-size:14px;font-weight:700;color:rgba(255,255,255,.7);margin-top:8px}
+#tip{position:fixed;z-index:60;pointer-events:none;opacity:0;transition:opacity .15s;font-size:13px;font-weight:700;padding:8px 12px;border-radius:5px 12px 12px 12px;background:rgba(6,26,51,.95);border:1px solid var(--line);white-space:nowrap}
+/* ---------- PARTNERS (logo panels) ---------- */
+.pgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:26px;width:100%}
+.pp{padding:16px 18px 14px}
+.pp h3{font-size:16px;color:var(--gold-xl);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.pp h3::before{content:"";width:18px;height:2px;background:var(--gold)}
+.pp .lg{display:grid;gap:10px 12px;align-items:center}
+.pp .lg div{height:clamp(52px,7vh,70px);display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px 6px;border-radius:var(--sq) 12px 12px 12px;background:rgba(255,255,255,.04);transition:.3s}
+.pp .lg div:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+.pp .lg img{display:block;width:auto;height:auto;max-width:100%;max-height:clamp(38px,5.2vh,54px);object-fit:contain;opacity:.92}
+.pp .sublbl{grid-column:1/-1;font-size:12.5px;font-weight:700;color:rgba(255,255,255,.55);margin-top:4px}
+.pp.gov{grid-column:span 5}.pp.air{grid-column:span 7}.pp.trn{grid-column:span 4}.pp.htl{grid-column:span 8}
+.pp.gov .lg{grid-template-columns:repeat(3,1fr)}.pp.air .lg{grid-template-columns:repeat(5,1fr)}.pp.trn .lg{grid-template-columns:repeat(2,1fr)}.pp.htl .lg{grid-template-columns:repeat(6,1fr)}
+/* ---------- CLOSING ---------- */
+#closing{flex-direction:column;justify-content:center;align-items:flex-start;text-align:start}
+#closing>*{width:min(620px,100%)}
+#closing .logo{width:min(300px,60vw);margin:0 0 26px;filter:drop-shadow(0 10px 40px rgba(214,176,95,.25))}
+#closing h2{font-size:clamp(34px,4.6vw,70px)}
+#closing h2.thanks{font-size:clamp(56px,7vw,112px);font-weight:900;line-height:1.45;overflow:visible;padding-block:.06em}
+#closing h2.thanks .gold{display:inline-block;padding:.12em .04em .18em;line-height:1.3}
+.endrow{display:flex;align-items:center;gap:clamp(18px,2.4vw,34px);margin-top:30px;flex-wrap:wrap;width:auto!important}
+.endrow .qrbox{margin-top:0}
+.econ{display:flex;flex-direction:column;gap:14px}
+.econ a,.econ div{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none;font-weight:700;font-size:clamp(15px,1.2vw,18px)}
+.econ svg{width:20px;height:20px;flex:none;stroke:var(--gold-xl);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.econ small{display:block;font-size:12px;color:var(--gold-l);font-weight:700}
+.econ span{direction:ltr;unicode-bidi:isolate}
+.qrbox{display:inline-flex;flex-direction:column;align-items:center;gap:10px;margin-top:34px;width:auto!important}
+.qrbox img{width:clamp(150px,13vw,200px);height:auto;border-radius:var(--sq) 22px 22px 22px;box-shadow:0 20px 50px -20px rgba(0,0,0,.6),0 0 0 1px rgba(223,189,117,.35)}
+.qrbox span{font-weight:800;font-size:14px;color:var(--gold-xl)}
+.cta{display:flex;gap:22px;justify-content:flex-start;align-items:stretch;margin-top:40px;flex-wrap:wrap}
+.qr{background:#fff;padding:14px;border-radius:var(--sq) 20px 20px 20px;display:grid;place-items:center}
+.qr canvas,.qr img{display:block;width:150px!important;height:150px!important}
+.contact{text-align:start;display:flex;flex-direction:column;justify-content:center;gap:12px;min-width:280px}
+.contact a,.contact div{color:#fff;text-decoration:none;font-weight:700;font-size:17px;display:flex;gap:12px;align-items:center}
+.contact svg{width:20px;height:20px;stroke:var(--gold-xl);fill:none;stroke-width:1.7}
+.contact small{display:block;font-size:12.5px;color:var(--gold-l);font-weight:700}
+.foot{margin-top:56px;font-size:13px;color:rgba(255,255,255,.45)}
+
+/* ---------- kiosk ---------- */
+.kbadge{position:fixed;bottom:20px;inset-inline-end:20px;z-index:30;display:none;align-items:center;gap:10px;font-size:13px;font-weight:700;color:rgba(255,255,255,.7);
+  background:rgba(0,0,0,.25);padding:8px 14px;border-radius:999px;backdrop-filter:blur(8px)}
+.kbadge i{width:8px;height:8px;border-radius:50%;background:#2ee08a;box-shadow:0 0 10px #2ee08a}
+body.auto .kbadge{display:flex}
+body.kiosk .tools .pill.fs{display:flex}
+.touchhint{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:30;display:none;font-weight:800;font-size:16px;color:var(--gold-xl);
+  padding:12px 22px;border-radius:999px;background:rgba(6,26,51,.6);border:1px solid var(--line);animation:breathe 2.6s infinite}
+body.auto.kiosk .touchhint{display:block}
+@keyframes breathe{50%{opacity:.55}}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){
+  .svc{grid-template-columns:repeat(3,1fr)} .why{grid-template-columns:repeat(2,1fr)}
+  .pp.gov,.pp.air,.pp.trn,.pp.htl{grid-column:span 12} .pp.htl .lg{grid-template-columns:repeat(4,1fr)}
+  #numbers .wrap{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  nav.dots{display:none}
+  .brand .sep,.brand .sub{display:none}
+  section{align-items:flex-end;padding-bottom:70px}
+  #hero{align-items:flex-end}
+  .grid2,.camps{grid-template-columns:1fr}
+  .svc{grid-template-columns:1fr 1fr} .svc .card{min-height:0}
+  .why{grid-template-columns:1fr}
+  .pkgrid,.charts2,.pswrap{grid-template-columns:1fr} .pp.air .lg,.pp.gov .lg{grid-template-columns:repeat(3,1fr)} .pp.htl .lg{grid-template-columns:repeat(3,1fr)} .pp.trn .lg{grid-template-columns:repeat(3,1fr)}
+  .days{grid-template-columns:repeat(5,1fr)} .day span{display:none}
+  #journey .stick{align-items:flex-end;padding-bottom:90px}
+  .jcard{min-height:250px}
+  .stage3d{height:340px}
+  .bar{width:70px} .bar .lb{font-size:10.5px} .bar .v{font-size:17px}
+  .pill .tx{display:none}
+  .scrim{display:block}
+  .jnum{font-size:56px} .jstep h3{font-size:22px;margin:6px 0} .jstep p{font-size:15px;line-height:1.7} .jicon{width:46px;height:46px;margin-bottom:8px}
+  .jcard{min-height:300px} .jhead{top:84px}
+  #numbers.in .bar{height:calc(var(--h)*.62)} .bar{width:64px}
+  .ayah{font-size:16px}
+  .scrollhint{display:none}
+  #closing{align-items:center;text-align:center} #closing .logo{margin:0 auto 20px} .cta{justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){.grain,.marq .tr{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div class="scrim"></div>
+
+<div id="loader"><div style="text-align:center"><img src="assets/logo_white.png" alt="Al Rajhi"><div class="bar"><i id="lbar"></i></div></div></div>
+
+<header class="top">
+  <div class="brand">
+    <img src="assets/logo_white.png" alt="الراجحي Al Rajhi">
+  </div>
+  <div class="tools">
+    <button class="pill" id="autoBtn" title="Auto tour"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="tx" data-t="tour">جولة تلقائية</span></button>
+    <button class="pill fs" id="fsBtn" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button class="pill" id="langBtn">EN</button>
+  </div>
+</header>
+<nav class="dots" id="dots"></nav>
+<div id="labels"></div>
+
+<main id="main">
+  <!-- HERO -->
+  <section id="hero" data-nav="hero">
+    <div class="col">
+      <div class="ayah rv">﴿ وَأَذِّن فِي النَّاسِ بِالْحَجِّ يَأْتُوكَ رِجَالًا وَعَلَىٰ كُلِّ ضَامِرٍ يَأْتِينَ مِن كُلِّ فَجٍّ عَمِيقٍ ﴾<small data-t="ayahref">سورة الحج · ٢٧</small></div>
+      <div class="eyebrow rv" data-t="h_eye">قطاع الحج المباشر · شركة الراجحي للخدمات التجارية المساندة</div>
+      <h1 class="rv" data-t="h_title" data-html>من كلِّ فجٍّ عميق<br><span class="gold">رحلةٌ واحدة… بإحسان</span></h1>
+      <p class="lead rv" data-t="h_lead">نخدم ضيوف الرحمن القادمين من أوروبا والأمريكتين وأستراليا وحول العالم، منذ لحظة الحجز عبر منصة نسك حج وحتى عودتهم إلى أوطانهم سالمين.</p>
+    </div>
+    <div class="scrollhint"><i></i><span data-t="scroll">مرِّر لتبدأ الرحلة</span></div>
+  </section>
+
+  <!-- WORLD -->
+  <section id="world" data-nav="world">
+    <div class="col">
+      <div class="eyebrow rv" data-t="w_eye">ضيوف الرحمن من كل القارات</div>
+      <h2 class="rv" data-t="w_title" data-html>العالم كلّه<br><span class="gold">يلتقي في مكة</span></h2>
+      <div class="bigstats rv">
+        <div><div class="n gold"><span class="count" data-k="countries">0</span></div><div class="l" data-t="countries">دولة حول العالم</div></div>
+        <div><div class="n gold"><span class="count" data-k="nationalities">0</span></div><div class="l" data-t="nationalities">جنسية خدمناها</div></div>
+      </div>
+      <div class="regions rv" id="regions"></div>
+      <div class="clist rv" id="clist"></div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" data-nav="about">
+    <div class="col" style="width:min(820px,100%)">
+      <div class="eyebrow rv" data-t="a_eye">عن الحج المباشر</div>
+      <h2 class="rv" data-t="a_title" data-html>مقدّم خدمة معتمد<br><span class="gold">رسمياً عبر نسك حج</span></h2>
+      <p class="lead rv" data-t="a_lead">انطلاقاً من حرص شركة الراجحي للخدمات التجارية المساندة على خدمة ضيوف الرحمن، تشارك الشركة في مبادرة الحج المباشر التي أطلقتها وزارة الحج والعمرة عبر منصة نسك حج، كأحد مقدّمي الخدمة المعتمدين رسمياً، بباقات متكاملة تُعنى بأدق التفاصيل من لحظة القدوم وحتى العودة.</p>
+      <div class="grid2">
+        <div class="card vm rv"><h3 data-t="vision">رؤيتنا</h3><p data-t="vision_t">أن نكون الشريك الأمثل في تقديم خدمات الحج المباشر، عبر أعلى معايير الضيافة وباقات متكاملة عالية الجودة، تُعنى بضيوف الرحمن منذ وصولهم وحتى مغادرتهم بكل يسر وسهولة.</p></div>
+        <div class="card vm rv"><h3 data-t="mission">رسالتنا</h3><p data-t="mission_t">تقديم تجربة حج متميزة قائمة على الجودة والابتكار، تجمع بين السعر المناسب والخدمة الراقية، مستندين إلى خبرة تمتد لأكثر من ٦٠ عاماً، مع الالتزام بالحوكمة والشفافية والحرص على راحة الحاج في كل التفاصيل.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JOURNEY -->
+  <section id="journey" data-nav="journey">
+    <div class="stick">
+      <div class="jhead"><div class="eyebrow" data-t="j_eye">رحلة الحاج</div><h2 data-t="j_title" data-html>نرافق الحجاج <span class="gold">في كل خطوة</span></h2></div>
+      <div class="jcard card" id="jcard"></div>
+      <div class="rail" id="rail"></div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="services" data-nav="services">
+    <div class="wide">
+      <div class="eyebrow rv" data-t="s_eye">باقات متكاملة</div>
+      <h2 class="rv" data-t="s_title" data-html>كل ما يحتاجه الحاج <span class="gold">في باقة واحدة</span></h2>
+      <div class="svc" id="svc"></div>
+    </div>
+  </section>
+
+  <!-- PACKAGES (Nusuk Hajj categories) -->
+  <section id="packages" data-nav="packages">
+    <div class="wide">
+      <div class="eyebrow rv" data-t="pk_eye">الباقات والفئات عبر نسك حج</div>
+      <h2 class="rv" data-t="pk_title" data-html>ست فئات <span class="gold">تناسب كل حاج</span></h2>
+      <div class="pktoggle rv" id="pktoggle"></div>
+      <div class="pkgrid" id="pkgrid"></div>
+      <div class="pkinc rv" id="pkinc"></div>
+    </div>
+  </section>
+
+  <!-- CAMPS -->
+  <section id="camps" data-nav="camps">
+    <div class="photo"></div>
+    <div class="wide">
+      <div class="eyebrow rv" data-t="c_eye">المشاعر المقدسة</div>
+      <h2 class="rv" data-t="c_title" data-html>مخيمات مجهّزة <span class="gold">في قلب منى</span></h2>
+      <div class="camps" id="campsGrid"></div>
+      <div class="days rv" id="days"></div>
+    </div>
+  </section>
+
+  <!-- NUMBERS -->
+  <section id="numbers" data-nav="numbers">
+    <div class="wrap">
+      <div>
+        <div class="eyebrow rv" data-t="n_eye">الحج المباشر في أرقام</div>
+        <h2 class="rv"><span class="gold" dir="ltr" style="font-size:1.5em;font-weight:900;display:inline-block"><span class="count" data-to="24000">0</span>+</span><br><span data-t="n_title">حاجٍّ تشرّفنا بخدمتهم</span></h2>
+        <div class="minis">
+          <div class="card rv"><div class="n gold"><span class="count" data-to="366">0</span></div><div class="l" data-t="m1">باقة تم تنفيذها</div></div>
+          <div class="card rv"><div class="n gold" dir="ltr" style="text-align:end"><span class="count" data-to="60">0</span>+</div><div class="l" data-t="m2">عاماً من الخبرة في خدمة ضيوف الرحمن</div></div>
+          <div class="card rv"><div class="n gold"><span class="count" data-k="countries">0</span></div><div class="l" data-t="m3">دولة</div></div>
+          <div class="card rv"><div class="n gold"><span class="count" data-k="nationalities">0</span></div><div class="l" data-t="m4">جنسية</div></div>
+        </div>
+      </div>
+      <div class="stage3d"><div class="stairs" id="stairs">
+        <div class="bar b3" style="--h:22vh"><div class="tp"></div><div class="s"></div><div class="f"><div class="v" dir="ltr">1,300+</div><div class="lb" data-t="cat2">فئة المجاملة</div></div></div>
+        <div class="bar b2" style="--h:36vh"><div class="tp"></div><div class="s"></div><div class="f"><div class="v" dir="ltr">22,000+</div><div class="lb" data-t="cat1">فئة الأفراد</div></div></div>
+        <div class="bar b1" style="--h:46vh"><div class="tp"></div><div class="s"></div><div class="f"><div class="v" dir="ltr">24,000+</div><div class="lb" data-t="cat0">إجمالي الحجاج</div></div></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- REACH (countries & nationalities by region) -->
+  <section id="reach" data-nav="reach">
+    <div class="wide">
+      <div class="eyebrow rv" data-t="rc_eye">انتشارٌ حول العالم</div>
+      <h2 class="rv" data-t="rc_title" data-html>دول وجنسيات <span class="gold">من كل القارات</span></h2>
+      <div class="charts2">
+        <div class="card chart rv" id="chCountries"></div>
+        <div class="card chart rv" id="chNations"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PACKAGE STATS -->
+  <section id="pkstats" data-nav="pkstats">
+    <div class="wide">
+      <div class="eyebrow rv" data-t="ps_eye">الحجاج المستفيدون حسب الباقة</div>
+      <h2 class="rv" data-html data-t="ps_title">أرقامٌ <span class="gold">تحكي الثقة</span></h2>
+      <div class="pswrap">
+        <div class="card chart rv" id="chPkgs"></div>
+        <div class="card chart rv" id="chPkgN"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IHSAN (the R) -->
+  <section id="ihsan" data-nav="ihsan" style="align-items:flex-end;justify-content:center;text-align:center">
+    <div class="col" style="width:min(720px,100%);margin-bottom:2vh">
+      <div class="eyebrow rv" style="justify-content:center" data-t="i_eye">هويتنا</div>
+      <h2 class="rv" data-t="i_title" data-html>نعمل <span class="gold">بإحسان</span></h2>
+      <p class="lead rv" data-t="i_lead">وعدٌ يرافق ضيف الرحمن في كل تفاصيل رحلته، من لحظة الحجز حتى عودته إلى وطنه.</p>
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section id="why" data-nav="why">
+    <div class="wide">
+      <div class="eyebrow rv" data-t="y_eye">ما يميّزنا</div>
+      <h2 class="rv" data-t="y_title" data-html>خبرة عريقة <span class="gold">ورؤية متجددة</span></h2>
+      <div class="why" id="whyGrid"></div>
+      <div class="values rv" id="values"></div>
+    </div>
+  </section>
+
+  <!-- MOMENTS -->
+  <section id="moments" data-nav="moments">
+    <div class="head"><div class="eyebrow rv" data-t="mo_eye">صور تذكارية</div><h2 class="rv" data-t="mo_title" data-html>لحظاتٌ <span class="gold">لا تُنسى</span></h2></div>
+    <div class="ringwrap" id="ringwrap"><div class="ring" id="ring"></div><div class="ring r2" id="ring2"></div><div class="reflect"></div></div>
+  </section>
+
+  <!-- PARTNERS -->
+  <section id="partners" data-nav="partners">
+    <div class="head"><div class="eyebrow rv" data-t="p_eye">الشركاء الاستراتيجيون</div><h2 class="rv" data-t="p_title" data-html>منظومة شراكات <span class="gold">تصنع التجربة</span></h2></div>
+    <div class="pgrid" id="pgrid"></div>
+  </section>
+
+  <!-- CLOSING -->
+  <section id="closing" data-nav="closing">
+    <img class="logo rv" src="assets/logo_white.png" alt="Al Rajhi">
+    <h2 class="rv thanks" data-t="cl_title" data-html><span class="gold">شكراً لكم</span></h2>
+    <p class="lead rv" data-t="cl_lead">نتشرّف بخدمة ضيوف الرحمن… ونسعد بتواصلكم معنا.</p>
+    <div class="endrow rv">
+      <div class="qrbox"><img src="assets/qr.png" alt="QR"><span data-t="cl_qr">امسح الرمز</span></div>
+      <div class="econ">
+        <div><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg><p><small data-t="unified">الرقم الموحد</small><span>920013325</span></p></div>
+        <div><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg><p><small data-t="email">البريد الإلكتروني</small><span>directhajj@mateen-ms.com</span></p></div>
+        <a href="https://www.alrajhi-css.com" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg><p><small data-t="web">الموقع الإلكتروني</small><span>www.alrajhi-css.com</span></p></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="kbadge"><i></i><span data-t="autoon">عرض تلقائي</span></div>
+<div id="tip"></div>
+<div class="touchhint" data-t="touch">المس الشاشة للاستكشاف</div>
+
+<script src="data.js"></script>
+<script src="region.js"></script>
+<script src="rshape.js"></script>
+<script src="hijaz.js"></script>
+<script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}</script>
+
+<script>
+/* ================= CONTENT (AR / EN) ================= */
+window.CONFIG = {
+  qrUrl: "https://hajj.nusuk.sa/",   // ← replace with the link Al Rajhi wants visitors to open
+};
+const ICONS={
+  check:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  visa:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/>',
+  land:'<path d="M2 22h20"/><path d="M3.8 10.6 5 7l1.6.6 1.2 3.6 5 1.6V5.6l1.9.6 2.3 7.1 3.3 1.1a1.6 1.6 0 0 1-1 3.1L3 12.3z"/>',
+  bus:'<path d="M8 6v6M15 6v6M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2s-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
+  hotel:'<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/><path d="M10 21v-4h4v4"/>',
+  dome:'<path d="M4 21V11a8 8 0 0 1 16 0v10"/><path d="M2 21h20"/><path d="M12 3V1"/><path d="M9 21v-5a3 3 0 0 1 6 0v5"/>',
+  tent:'<path d="M3.5 21 14 3"/><path d="M20.5 21 10 3"/><path d="M15.5 21 12 15l-3.5 6"/><path d="M2 21h20"/>',
+  home:'<path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-6h6v6"/>',
+  takeoff:'<path d="M2 22h20"/><path d="M6.4 17.4 4 17l-2-4 1.1-.6a2 2 0 0 1 1.8 0l.2.1a2 2 0 0 0 1.8 0L8 12 5 6l.9-.5a2 2 0 0 1 2.1.2l4 3a2 2 0 0 0 2.1.2l4.2-2.1a2.4 2.4 0 0 1 1.7-.2L21 7a1.4 1.4 0 0 1 .9 2l-.4.8c-.2.5-.6.8-1.1 1.1L7.6 17.2a2 2 0 0 1-1.2.2z"/>',
+  plane:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  food:'<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/>',
+  guide:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>',
+  award:'<circle cx="12" cy="8" r="6"/><path d="M15.5 12.9 17 22l-5-3-5 3 1.5-9.1"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+  coin:'<circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18"/><path d="M7 6h1v4"/><path d="m16.7 13.9.7.7-2.8 2.8"/>',
+  chip:'<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>',
+};
+const ic=(k)=>`<svg viewBox="0 0 24 24">${ICONS[k]}</svg>`;
+
+const T={
+ar:{
+ tour:"جولة تلقائية",ayahref:"سورة الحج · ٢٧",h_eye:"قطاع الحج المباشر · شركة الراجحي للخدمات التجارية المساندة",
+ h_title:'من كلِّ فجٍّ عميق<br><span class="gold">رحلةٌ واحدة… بإحسان</span>',
+ h_lead:"نخدم ضيوف الرحمن القادمين من أوروبا والأمريكتين وأستراليا وحول العالم، منذ لحظة الحجز عبر منصة نسك حج وحتى عودتهم إلى أوطانهم سالمين.",
+ ev1:"مؤتمر ومعرض الحج",ev2:"جدة · ٨–١١ نوفمبر ٢٠٢٦",scroll:"مرِّر لتبدأ الرحلة",
+ w_eye:"ضيوف الرحمن من كل القارات",w_title:'العالم كلّه<br><span class="gold">يلتقي في مكة</span>',countries:"دولة حول العالم",nationalities:"جنسية خدمناها",
+ a_eye:"عن الحج المباشر",a_title:'مقدّم خدمة معتمد<br><span class="gold">رسمياً عبر نسك حج</span>',
+ a_lead:"انطلاقاً من حرص شركة الراجحي للخدمات التجارية المساندة على خدمة ضيوف الرحمن، تشارك الشركة في مبادرة الحج المباشر التي أطلقتها وزارة الحج والعمرة عبر منصة نسك حج، كأحد مقدّمي الخدمة المعتمدين رسمياً، بباقات متكاملة تُعنى بأدق التفاصيل من لحظة القدوم وحتى العودة.",
+ vision:"رؤيتنا",vision_t:"أن نكون الشريك الأمثل في تقديم خدمات الحج المباشر، عبر أعلى معايير الضيافة وباقات متكاملة عالية الجودة، تُعنى بضيوف الرحمن منذ وصولهم وحتى مغادرتهم بكل يسر وسهولة.",
+ mission:"رسالتنا",mission_t:"تقديم تجربة حج متميزة قائمة على الجودة والابتكار، تجمع بين السعر المناسب والخدمة الراقية، مستندين إلى خبرة تمتد لأكثر من ٦٠ عاماً، مع الالتزام بالحوكمة والشفافية والحرص على راحة الحاج في كل التفاصيل.",
+ j_eye:"رحلة الحاج",j_title:'نرافق الحجاج <span class="gold">في كل خطوة</span>',
+ s_eye:"باقات متكاملة",s_title:'كل ما يحتاجه الحاج <span class="gold">في باقة واحدة</span>',tiers:"مستويات الباقات:",t1:"الأساسية",t2:"المتميزة",t3:"الرفاهية",tiers_n:"مع الانتقال أو بدونه · وباقات النخبة والمشاعر المقدسة",
+ c_eye:"المشاعر المقدسة",c_title:'مخيمات مجهّزة <span class="gold">في قلب منى</span>',
+ n_eye:"الحج المباشر في أرقام",n_title:"حاجٍّ تشرّفنا بخدمتهم",m1:"باقة تم تنفيذها",m2:"عاماً من الخبرة في خدمة ضيوف الرحمن",m3:"دولة",m4:"جنسية",
+ cat0:"إجمالي الحجاج",cat1:"فئة الأفراد",cat2:"فئة المجاملة",cat3:"فئة النخبة",
+ y_eye:"ما يميّزنا",y_title:'خبرة عريقة <span class="gold">ورؤية متجددة</span>',
+ mo_eye:"صور تذكارية",mo_title:'لحظاتٌ <span class="gold">لا تُنسى</span>',
+ p_eye:"الشركاء الاستراتيجيون",p_title:'منظومة شراكات <span class="gold">تصنع التجربة</span>',
+ cl_title:'نلقاكم <span class="gold">في جدة</span>',i_eye:"هويتنا",i_title:'نعمل <span class="gold">بإحسان</span>',i_lead:"وعدٌ يرافق ضيف الرحمن في كل تفاصيل رحلته، من لحظة الحجز حتى عودته إلى وطنه.",cl_lead:"نلقاكم في مؤتمر ومعرض الحج ٢٠٢٦ · جدة. امسح الرمز للتعرف على باقاتنا عبر منصة نسك حج.",
+ unified:"الرقم الموحد",email:"البريد الإلكتروني",web:"الموقع الإلكتروني",loc:"الموقع",loc_t:"مكة المكرمة · المملكة العربية السعودية",
+ foot:"© ٢٠٢٦ شركة الراجحي للخدمات التجارية المساندة · قطاع الحج المباشر",autoon:"عرض تلقائي",touch:"المس الشاشة للاستكشاف",
+ regions:["آسيا","أفريقيا","أوروبا","الأمريكتان","أوقيانوسيا"],all:"الكل",
+ nav:{hero:"البداية",world:"العالم",about:"من نحن",journey:"الرحلة",services:"الخدمات",camps:"المشاعر",numbers:"الأرقام",ihsan:"إحسان",why:"ما يميزنا",moments:"لحظات",partners:"الشركاء",closing:"تواصل"},
+ steps:[
+  ["check","اختيار الباقة","يختار الحاج الباقة المناسبة له عبر منصة نسك حج، من بين باقات تناسب مختلف التطلعات."],
+  ["visa","إصدار التأشيرة","إصدار التأشيرة الإلكترونية بعد إتمام الحجز، بإجراءات واضحة وسلسة."],
+  ["land","الوصول والاستقبال","الوصول إلى المملكة والاستقبال في المطار بحفاوة تليق بضيوف الرحمن."],
+  ["bus","النقل إلى السكن","النقل إلى مقر السكن في مكة المكرمة أو المدينة المنورة."],
+  ["hotel","الإقامة والخدمات","إقامة مريحة مع توفير الإعاشة والتنقل الداخلي طوال الرحلة."],
+  ["dome","الزيارات الإثرائية","رحلات إثرائية إلى المزارات التاريخية في مكة المكرمة والمدينة المنورة."],
+  ["tent","المشاعر المقدسة","التفويج إلى المشاعر: منى وعرفات ومزدلفة، في مخيمات مجهّزة بالكامل."],
+  ["home","العودة إلى السكن","العودة إلى السكن بعد أداء المناسك، وراحة تامة حتى موعد المغادرة."],
+  ["takeoff","المغادرة بسلام","النقل إلى المطار للعودة إلى الوطن بعد أداء الفريضة، محمّلاً بذكريات لا تُنسى."]],
+ svc:[["hotel","السكن","في مكة المكرمة والمدينة المنورة"],["food","الإعاشة والتموين","خدمات إعاشة متكاملة طوال الرحلة"],["plane","حجوزات الطيران","تنسيق الرحلات مع كبرى شركات الطيران"],["bus","النقل","بين المدن والمشاعر المقدسة والنقل الداخلي"],["guide","الإرشاد والمرافقة","فرق ميدانية ترافق الحاج في كل محطة"]],
+ camps:[["01","مجر الكبش","300–700","متر فقط عن جسر الجمرات","موقع مميز يُسهّل أداء شعيرة رمي الجمرات بيسر، بطاقة استيعابية تصل إلى نحو 5,000 حاج."],
+        ["02","المعيصم","44,000","طاقة استيعابية تصل إلى","مخيم واسع على بُعد نحو 4 كيلومترات من جسر الجمرات، يقدّم جميع وسائل الراحة لإقامة هانئة."],
+        ["03","٧٢ ب","12,000","طاقة استيعابية تصل إلى نحو","بيئة منظّمة وخدمات متكاملة ومرافق أساسية تضمن إقامة آمنة ومريحة طوال أيام منى."]],
+ days:[["٨ ذو الحجة","يوم التروية · منى"],["٩ ذو الحجة","يوم عرفة"],["ليلة ١٠","المبيت بمزدلفة"],["١٠ ذو الحجة","يوم النحر"],["١١–١٣","أيام التشريق"]],
+ why:[["award","من أوائل الشركات المعتمدة في الحج المباشر"],["shield","خبرة تمتد لأكثر من ٦٠ عاماً في خدمة ضيوف الرحمن"],["coin","الجمع بين السعر المناسب وجودة عالية للخدمات"],["chip","أنظمة تقنية متطورة تُسهّل المتابعة وتضمن الشفافية"]],
+ values:["خدمة ضيوف الرحمن بروح المسؤولية","النزاهة والشفافية","الجودة والتميّز","الخبرة والاحترافية","الابتكار والتطوير المستمر"],
+ pg:["جهات رسمية","طيران","نقل","فنادق مكة","فنادق المدينة"],
+},
+en:{
+ tour:"Auto tour",ayahref:"Surah Al-Hajj · 27",h_eye:"Direct Hajj Sector · Al Rajhi Commercial Support Services",
+ h_title:'From every distant land,<br><span class="gold">one journey with Ihsan</span>',
+ h_lead:"We serve the Guests of Allah from Europe, the Americas, Australia and around the world, from the moment they book on Nusuk Hajj until they return home safely.",
+ ev1:"Hajj Conference & Exhibition",ev2:"Jeddah · 8–11 Nov 2026",scroll:"Scroll to begin the journey",
+ w_eye:"Pilgrims from every continent",w_title:'The whole world<br><span class="gold">meets in Makkah</span>',countries:"countries worldwide",nationalities:"nationalities served",
+ a_eye:"About Direct Hajj",a_title:'An officially accredited<br><span class="gold">Nusuk Hajj provider</span>',
+ a_lead:"Al Rajhi Commercial Support Services takes part in the Direct Hajj initiative launched by the Ministry of Hajj and Umrah through the Nusuk Hajj platform, as an officially accredited service provider offering complete packages that care for every detail from arrival to return.",
+ vision:"Our Vision",vision_t:"To be the partner of choice for Direct Hajj services, with the highest hospitality standards and high-quality, complete packages that care for pilgrims from arrival to departure with ease.",
+ mission:"Our Mission",mission_t:"To deliver a distinguished Hajj experience built on quality and innovation, balancing fair pricing with refined service, backed by more than 60 years of experience and a commitment to governance, transparency and the pilgrim's comfort.",
+ j_eye:"The Pilgrim's Journey",j_title:'With our pilgrims <span class="gold">at every step</span>',
+ s_eye:"Complete packages",s_title:'Everything a pilgrim needs <span class="gold">in one package</span>',tiers:"Package tiers:",t1:"Basic",t2:"Premium",t3:"Luxury",tiers_n:"with or without transfers · plus Elite and Holy Sites packages",
+ c_eye:"The Holy Sites",c_title:'Fully equipped camps <span class="gold">in the heart of Mina</span>',
+ n_eye:"Direct Hajj in numbers",n_title:"pilgrims we have been honoured to serve",m1:"packages delivered",m2:"years serving the Guests of Allah",m3:"countries",m4:"nationalities",
+ cat0:"Total pilgrims",cat1:"Individuals",cat2:"Guests (Mujamala)",cat3:"Elite",
+ y_eye:"What sets us apart",y_title:'Deep heritage, <span class="gold">fresh vision</span>',
+ mo_eye:"Moments",mo_title:'Moments <span class="gold">never forgotten</span>',
+ p_eye:"Strategic partners",p_title:'A partner ecosystem <span class="gold">behind every experience</span>',
+ cl_title:'See you <span class="gold">in Jeddah</span>',i_eye:"Our promise",i_title:'We serve <span class="gold">with Ihsan</span>',i_lead:"A promise that stays with every guest of Allah, through every detail of the journey, from booking to the journey home.",cl_lead:"Visit us at the Hajj Conference & Exhibition 2026 · Jeddah. Scan to explore our packages on Nusuk Hajj.",
+ unified:"Unified number",email:"Email",web:"Website",loc:"Location",loc_t:"Makkah · Kingdom of Saudi Arabia",
+ foot:"© 2026 Al Rajhi Commercial Support Services · Direct Hajj Sector",autoon:"Auto tour",touch:"Touch the screen to explore",
+ regions:["Asia","Africa","Europe","Americas","Oceania"],all:"All",
+ nav:{hero:"Start",world:"World",about:"About",journey:"Journey",services:"Services",camps:"Holy Sites",numbers:"Numbers",ihsan:"Ihsan",why:"Why us",moments:"Moments",partners:"Partners",closing:"Contact"},
+ steps:[
+  ["check","Choose a package","Pilgrims choose the package that suits them on the Nusuk Hajj platform."],
+  ["visa","e-Visa issued","The electronic visa is issued once booking is complete, through a clear, smooth process."],
+  ["land","Arrival & welcome","Arrival in the Kingdom and a warm airport welcome worthy of the Guests of Allah."],
+  ["bus","Transfer to residence","Transfer to accommodation in Makkah or Madinah."],
+  ["hotel","Stay & services","Comfortable accommodation with catering and internal transport throughout."],
+  ["dome","Enriching ziyarat","Guided visits to historic sites in Makkah and Madinah."],
+  ["tent","The Holy Sites","Movement to Mina, Arafat and Muzdalifah, in fully equipped camps."],
+  ["home","Return to residence","Back to the hotel after the rites, resting fully until departure."],
+  ["takeoff","Depart in peace","Transfer to the airport to return home, carrying memories that last a lifetime."]],
+ svc:[["hotel","Accommodation","In Makkah and Madinah"],["food","Catering","Complete catering throughout the journey"],["plane","Flights","Coordinated with leading airlines"],["bus","Transport","Between cities, the Holy Sites and locally"],["guide","Guidance & escort","Field teams with pilgrims at every stop"]],
+ camps:[["01","Majar Al-Kabsh","300–700","metres from the Jamarat Bridge","A prime location that makes the stoning ritual easy, with capacity for about 5,000 pilgrims."],
+        ["02","Al-Muaisim","44,000","capacity of up to","A spacious camp about 4 km from the Jamarat Bridge, with every comfort for a restful stay."],
+        ["03","72B","12,000","capacity of around","An organised environment with integrated services and facilities for a safe, comfortable stay in Mina."]],
+ days:[["8 Dhul Hijjah","Tarwiyah · Mina"],["9 Dhul Hijjah","Day of Arafah"],["Night of 10","Muzdalifah"],["10 Dhul Hijjah","Day of Nahr"],["11–13","Days of Tashreeq"]],
+ why:[["award","Among the first accredited companies in Direct Hajj"],["shield","More than 60 years serving the Guests of Allah"],["coin","Fair pricing combined with high-quality service"],["chip","Advanced technology systems for tracking and transparency"]],
+ values:["Serving pilgrims with responsibility","Integrity & transparency","Quality & excellence","Expertise & professionalism","Innovation & continuous improvement"],
+ pg:["Official bodies","Airlines","Transport","Makkah hotels","Madinah hotels"],
+}};
+const PARTNERS=[
+ [0,{ar:"وزارة الحج والعمرة",en:"Ministry of Hajj & Umrah"}],[0,{ar:"الهيئة الملكية لمدينة مكة المكرمة والمشاعر المقدسة",en:"Royal Commission for Makkah City & Holy Sites"}],[0,{ar:"برنامج خدمة ضيوف الرحمن",en:"Pilgrim Experience Program"}],[0,{ar:"علم",en:"Elm"}],[0,{ar:"كدانة",en:"Kidana"}],[0,{ar:"تأشير",en:"Tasheer"}],
+ [1,{ar:"الخطوط السعودية",en:"Saudia"}],[1,{ar:"طيران ناس",en:"flynas"}],[1,{ar:"طيران أديل",en:"flyadeal"}],[1,{ar:"الخطوط القطرية",en:"Qatar Airways"}],[1,{ar:"الخطوط التركية",en:"Turkish Airlines"}],[1,{ar:"الخطوط الإثيوبية",en:"Ethiopian"}],[1,{ar:"طيران الإمارات",en:"Emirates"}],[1,{ar:"الملكية الأردنية",en:"Royal Jordanian"}],
+ [2,{ar:"سابتكو",en:"SAPTCO"}],[2,{ar:"النقابة العامة للسيارات",en:"General Syndicate of Cars"}],
+ [3,{ar:"ساعة مكة الملكية",en:"Makkah Clock Royal Tower"}],[3,{ar:"سويس أوتيل",en:"Swissôtel"}],[3,{ar:"بولمان",en:"Pullman"}],[3,{ar:"شذا",en:"Shaza"}],[3,{ar:"هوليداي إن",en:"Holiday Inn"}],[3,{ar:"فور بوينتس",en:"Four Points by Sheraton"}],[3,{ar:"موفنبيك",en:"Mövenpick"}],
+ [4,{ar:"موفنبيك",en:"Mövenpick"}],[4,{ar:"معادن",en:"Maden"}],
+];
+
+/* ===== added content (v4) ===== */
+const STATS={
+ countriesByRegion:(()=>{const c=[0,0,0,0,0]; COUNTRIES.forEach(x=>c[x[4]]++); return c;})(),
+ nationsByRegion:[28,32,33,14,4],         // final nationalities list (profile p.33) = 111
+};
+STATS.countries=STATS.countriesByRegion.reduce((a,b)=>a+b,0);
+STATS.nationalities=STATS.nationsByRegion.reduce((a,b)=>a+b,0);
+const PKG_STATS=[ // [ar,en,packages,pilgrims] — profile p.28
+ ["الأساسية","Basic",65,7745],["الرفاهية مع الانتقال","Luxury with transfer",61,4347],["الرفاهية","Luxury",22,2542],
+ ["المشاعر المقدسة","Holy Sites",19,1565],["النخبة","Elite",5,656],["المتميزة","Premium",3,819],["المتميزة مع الانتقال","Premium with transfer",2,61],["فئات حج ٢٠٢٣","Hajj 2023 categories",189,6653]];
+const PKG_PILGRIMS_TOTAL=PKG_STATS.reduce((a,p)=>a+p[3],0); // = 24,388 (profile p.30)
+const PK={ // Nusuk Hajj categories — from the packages document
+ ar:{no:[["الرفاهية","★★★★★","أعلى مستويات الخدمة لتجربة مريحة وراقية.",[["السكن في مكة","فنادق 5 نجوم"],["السكن في المدينة","فنادق 5 نجوم"]],"10 أيام كحد أدنى"],
+         ["المتميزة","★★★★","مزيج من الراحة والعملية لأداء المناسك بيسر.",[["السكن في مكة","فنادق 4 نجوم"],["السكن في المدينة","فنادق 4 نجوم"]],"10 أيام كحد أدنى"],
+         ["الأساسية","★★★","جميع الخدمات اللازمة لتجربة حج متكاملة بأسعار مناسبة.",[["السكن في مكة","فنادق 3 نجوم أو عمارة سكنية"],["السكن في المدينة","فنادق 3 نجوم أو عمارة سكنية"]],"14 يوماً كحد أدنى"]],
+     tr:[["الرفاهية مع الانتقال","★★★★★","التوازن المثالي بين الفخامة وسهولة الوصول لمناطق الحج.",[["السكن في مكة","فنادق 5 نجوم"],["بعد الانتقال","5 أو 4 نجوم أو عمارة سكنية"],["السكن في المدينة","فنادق 5 نجوم"]],"14 يوماً كحد أدنى"],
+         ["المتميزة مع الانتقال","★★★★","نقطة الاتزان بين الراحة وسهولة الوصول بأسعار مناسبة.",[["السكن في مكة","فنادق 4 نجوم"],["بعد الانتقال","4 أو 3 نجوم أو عمارة سكنية"],["السكن في المدينة","فنادق 4 نجوم"]],"14 يوماً كحد أدنى"],
+         ["الأساسية مع الانتقال","★★★","لمن يبحث عن إقامة ممتدة وبتكلفة ملائمة.",[["السكن في مكة","3 نجوم أو عمارة سكنية"],["بعد الانتقال","3 نجوم أو عمارة سكنية"],["السكن في المدينة","—"]],"14 يوماً كحد أدنى"]],
+     tNo:"بدون خاصية الانتقال",tTr:"مع خاصية الانتقال",inc:"تشمل الباقة الشاملة:",
+     items:[["visa","إصدار التأشيرة"],["plane","الرحلات الجوية"],["hotel","السكن في مكة والمدينة"],["food","الإعاشة"],["bus","النقل بين المدن"],["tent","خدمات المشاعر"],["guide","الإرشاد"]],
+     note:"جميع الفئات تشمل الإقامة في مخيم منى (مجر الكبش أو المعيصم) · باقة المشاعر: 6 أيام"},
+ en:{no:[["Luxury","★★★★★","The highest service levels for a comfortable, refined Hajj.",[["Makkah stay","5-star hotels"],["Madinah stay","5-star hotels"]],"10 days minimum"],
+         ["Premium","★★★★","A blend of comfort and practicality for an easy Hajj.",[["Makkah stay","4-star hotels"],["Madinah stay","4-star hotels"]],"10 days minimum"],
+         ["Basic","★★★","Every essential service for a complete Hajj at fair prices.",[["Makkah stay","3-star hotels or residential buildings"],["Madinah stay","3-star hotels or residential buildings"]],"14 days minimum"]],
+     tr:[["Luxury with transfer","★★★★★","Luxury balanced with easy access to the main Hajj areas.",[["Makkah stay","5-star hotels"],["After transfer","5/4-star or residential"],["Madinah stay","5-star hotels"]],"14 days minimum"],
+         ["Premium with transfer","★★★★","The balance point between comfort and access, at fair prices.",[["Makkah stay","4-star hotels"],["After transfer","4/3-star or residential"],["Madinah stay","4-star hotels"]],"14 days minimum"],
+         ["Basic with transfer","★★★","For pilgrims seeking an extended stay at a moderate cost.",[["Makkah stay","3-star or residential"],["After transfer","3-star or residential"],["Madinah stay","—"]],"14 days minimum"]],
+     tNo:"Without transfer",tTr:"With transfer",inc:"The comprehensive package includes:",
+     items:[["visa","Visa issuance"],["plane","Flights"],["hotel","Makkah & Madinah stay"],["food","Catering"],["bus","Intercity transport"],["tent","Holy Sites services"],["guide","Guidance"]],
+     note:"All six categories include a stay at a Mina camp (Majar Al-Kabsh or Al-Muaisim) · Holy Sites package: 6 days"}};
+let pkMode='no';
+const PARTNER_GROUPS=[
+ ["gov",{ar:"الجهات الرسمية",en:"Official bodies"},[["gov_0","وزارة الحج والعمرة"],["gov_1","وزارة الخارجية"],["gov_2","برنامج خدمة ضيوف الرحمن"],["gov_3","الهيئة الملكية لمدينة مكة المكرمة والمشاعر المقدسة"],["gov_4","كدانة"],["gov_5","علم"],["gov_6","تأشير"]]],
+ ["air",{ar:"مجال الطيران",en:"Airlines"},[["air_0","الخطوط السعودية"],["air_1","المسافر"],["air_2","طيران أديل"],["air_3","طيران ناس"],["air_4","الخطوط القطرية"],["air_5","الملكية الأردنية"],["air_6","طيران الإمارات"],["air_7","الخطوط الإثيوبية"],["air_8","الخطوط التركية"]]],
+ ["trn",{ar:"مجال النقل",en:"Transport"},[["trn_0","سابتكو"],["trn_1","النقابة العامة للسيارات"],["trn_2","أبو سرهد للنقل"],["trn_3","أمير البحر"],["trn_4","القائد السعودية للنقل"]]],
+ ["htl",{ar:"الفنادق",en:"Hotels"},[["sub",{ar:"مكة المكرمة",en:"Makkah"}],["mak_0","ساعة مكة فيرمونت"],["mak_1","بولمان"],["mak_2","شذا"],["mak_3","سويس أوتيل المقام"],["mak_4","هوليداي إن"],["mak_5","موفنبيك هاجر"],["mak_6","العنوان جبل عمر"],["mak_7","سويس أوتيل مكة"],["mak_8","فور بوينتس"],["mak_9","إيواء"],["mak_10","فندق وأبراج مكة"],
+   ["sub",{ar:"المدينة المنورة",en:"Madinah"}],["med_0","معادن"],["med_1","معين المدينة"],["med_2","الروضة رويال إن"],["med_3","دار الإيمان إنتركونتيننتال"],["med_4","موفنبيك"]]]];
+Object.assign(T.ar,{pk_eye:"الباقات والفئات عبر نسك حج",pk_title:'ست فئات <span class="gold">تناسب كل حاج</span>',
+ rc_eye:"انتشارٌ حول العالم",rc_title:'دول وجنسيات <span class="gold">من كل القارات</span>',chC:"الدول حسب القارة",chN:"الجنسيات حسب القارة",chCt:"دولة",chNt:"جنسية",
+ ps_eye:"الحجاج المستفيدون حسب الباقة",ps_title:'أرقامٌ <span class="gold">تحكي الثقة</span>',ps_k1:"حاج مستفيد",ps_k2:"باقة تم تنفيذها",chP:"عدد الحجاج حسب نوع الباقة",chPN:"عدد الباقات المنفّذة حسب النوع",pkgs:"باقة",pil:"حاج",
+ cl_title:'<span class="gold">شكراً لكم</span>',cl_lead:"نتشرّف بخدمة ضيوف الرحمن… ونسعد بتواصلكم معنا.",cl_qr:"امسح الرمز",
+ regions5:["آسيا","أفريقيا","أوروبا","الأمريكتان","أوقيانوسيا"]});
+Object.assign(T.en,{pk_eye:"Packages & categories on Nusuk Hajj",pk_title:'Six categories <span class="gold">for every pilgrim</span>',
+ rc_eye:"A global reach",rc_title:'Countries & nationalities <span class="gold">from every continent</span>',chC:"Countries by continent",chN:"Nationalities by continent",chCt:"countries",chNt:"nationalities",
+ ps_eye:"Pilgrims served by package",ps_title:'Numbers <span class="gold">built on trust</span>',ps_k1:"pilgrims served",ps_k2:"packages delivered",chP:"Pilgrims by package type",chPN:"Packages delivered by type",pkgs:"packages",pil:"pilgrims",
+ cl_title:'<span class="gold">Thank you</span>',cl_lead:"Honoured to serve the Guests of Allah, and glad to stay in touch.",cl_qr:"Scan the code",
+ regions5:["Asia","Africa","Europe","Americas","Oceania"]});
+T.ar.nav=Object.assign(T.ar.nav,{packages:"الباقات",reach:"الانتشار",pkstats:"المستفيدون",closing:"شكراً"});
+T.en.nav=Object.assign(T.en.nav,{packages:"Packages",reach:"Reach",pkstats:"Beneficiaries",closing:"Thank you"});
+
+const PHOTOS=["m1","m2","m3","m4","m5","m6","m7","m8","m9","m10","m11","m12","n13"];
+const PHOTOS2=["n1","n2","n3","n4","n5","n6","n7","n8","n9","n10","n11","n12","n14"];
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+
+/* ================= UI ================= */
+let LANG='ar';
+try{ LANG=localStorage.getItem('rj_lang')||'ar'; }catch(e){}
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const fmt=(n)=> n.toLocaleString('en-US');
+let regionSel=-1;
+let layout=()=>{}, lastStep=-1, secs=[];
+
+function render(){
+  const L=T[LANG];
+  document.documentElement.lang=LANG; document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
+  $('#langBtn').textContent = LANG==='ar'?'EN':'عربي';
+  $$('[data-t]').forEach(el=>{const k=el.dataset.t; if(L[k]!==undefined){ if(el.hasAttribute('data-html')) el.innerHTML=L[k]; else el.textContent=L[k]; }});
+  // nav
+  $('#dots').innerHTML=$$('section[data-nav]').map(s=>`<a href="#${s.id}" data-id="${s.id}"><span>${L.nav[s.id]}</span></a>`).join('');
+  $$('#dots a').forEach(a=>a.onclick=(e)=>{e.preventDefault(); stopAuto(); smoothTo(document.getElementById(a.dataset.id).offsetTop+(a.dataset.id==='journey'?2:0),1600);});
+  // regions
+  const counts=[0,0,0,0,0]; COUNTRIES.forEach(c=>counts[c[4]]++);
+  $('#regions').innerHTML=`<button data-r="-1" class="${regionSel<0?'on':''}">${L.all}<em>${STATS.countries}</em></button>`+L.regions.map((r,i)=>`<button data-r="${i}" class="${regionSel===i?'on':''}">${r}<em>${counts[i]}</em></button>`).join('');
+  $$('#regions button').forEach(b=>b.onclick=()=>{regionSel=+b.dataset.r; render(); setRegion(regionSel);});
+  const list=COUNTRIES.filter(c=>regionSel<0||c[4]===regionSel).map(c=>LANG==='ar'?c[0]:c[1]);
+  $('#clist').textContent = regionSel<0 ? '' : list.join(LANG==='ar'?' · ':' · ');
+  // journey
+  $('#jcard').innerHTML=L.steps.map((s,i)=>`<div class="jstep" data-i="${i}"><div class="jicon">${ic(s[0])}</div><div class="jnum gold">${String(i+1).padStart(2,'0')}</div><h3>${s[1]}</h3><p>${s[2]}</p></div>`).join('');
+  $('#rail').innerHTML=L.steps.map((s,i)=>`<span><i></i></span>`).join('')+`<b id="railn">01 / 09</b>`;
+  // services
+  $('#svc').innerHTML=L.svc.map(s=>`<div class="card rv tilt">${ic(s[0])}<h3>${s[1]}</h3><p>${s[2]}</p></div>`).join('');
+  $('#campsGrid').innerHTML=L.camps.map(c=>`<div class="card camp rv"><span class="tag">${c[0]}</span><h3 style="margin-top:12px">${c[1]}</h3><div class="kl" style="margin-top:12px">${c[3]}</div><div class="k gold">${c[2]}</div><p>${c[4]}</p></div>`).join('');
+  $('#days').innerHTML=L.days.map(d=>`<div class="day"><i></i><b>${d[0]}</b><span>${d[1]}</span></div>`).join('');
+  $('#whyGrid').innerHTML=L.why.map(w=>`<div class="card rv tilt"><div class="ic">${ic(w[0])}</div><h3>${w[1]}</h3></div>`).join('');
+  $('#values').innerHTML=L.values.map(v=>`<span>${v}</span>`).join('');
+  renderPk(); renderCharts(); renderPartners();
+  $$('.count[data-k]').forEach(el=>el.dataset.to=STATS[el.dataset.k]);
+  $$('.count').forEach(el=>{ if(el.dataset.done) el.textContent=fmt(+el.dataset.to); });
+  bindTilt(); lastStep=-1; observe();
+  try{ localStorage.setItem('rj_lang',LANG);}catch(e){}
+}
+$('#langBtn').onclick=()=>{LANG=LANG==='ar'?'en':'ar'; render(); layout(); window.rebuildLabels&&window.rebuildLabels();};
+
+function renderPk(){ const P=PK[LANG];
+  $('#pktoggle').innerHTML=`<button data-m="no" class="${pkMode==='no'?'on':''}">${P.tNo}</button><button data-m="tr" class="${pkMode==='tr'?'on':''}">${P.tTr}</button>`;
+  $$('#pktoggle button').forEach(b=>b.onclick=()=>{ pkMode=b.dataset.m; renderPk(); $$('#pkgrid .pk').forEach((c,i)=>{c.style.animationDelay=(i*.08)+'s'; c.classList.add('swap');}); });
+  $('#pkgrid').innerHTML=P[pkMode].map(t=>`<div class="card pk rv in"><div class="tier"><h3>${t[0]}</h3><span class="stars">${t[1]}</span></div><p class="d">${t[2]}</p><dl>${t[3].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl><span class="dur">${t[4]}</span></div>`).join('');
+  $('#pkinc').innerHTML=`<b>${P.inc}</b>`+P.items.map(i=>`<span>${ic(i[0])}${i[1]}</span>`).join('')+`<span class="note">${P.note}</span>`; }
+function barChart(el,title,total,totLbl,rows,max){ const L=T[LANG];
+  el.innerHTML=`<div class="ch"><h3>${title}</h3><div class="tot gold">${fmt(total)}<small>${totLbl}</small></div></div>`+
+   rows.map(r=>`<div class="brow" data-tip="${r.tip||''}"><span class="lb">${r.l}</span><span class="tk"><i data-w="${(r.v/max*100).toFixed(1)}"></i></span><span class="vl">${fmt(r.v)}</span>${r.sub?`<span class="sub">${r.sub}</span>`:''}</div>`).join('');
+  if(el.closest('section').classList.contains('in')) growBars(el); }
+function growBars(root){ $$('.tk i',root).forEach(i=>{ i.style.width=i.dataset.w+'%'; }); }
+function renderCharts(){ const L=T[LANG];
+  const cR=STATS.countriesByRegion.map((v,i)=>({l:L.regions5[i],v,tip:`${L.regions5[i]}: ${v} ${L.chCt}`})).sort((a,b)=>b.v-a.v);
+  const nR=STATS.nationsByRegion.map((v,i)=>({l:L.regions5[i],v,tip:`${L.regions5[i]}: ${v} ${L.chNt}`})).sort((a,b)=>b.v-a.v);
+  barChart($('#chCountries'),L.chC,STATS.countries,L.chCt,cR,Math.max(...cR.map(r=>r.v)));
+  barChart($('#chNations'),L.chN,STATS.nationalities,L.chNt,nR,Math.max(...nR.map(r=>r.v)));
+  const tot=PKG_PILGRIMS_TOTAL;
+  const pR=PKG_STATS.map(p=>({l:LANG==='ar'?p[0]:p[1],v:p[3],tip:`${fmt(p[3])} ${L.pil} · ${p[2]} ${L.pkgs} · ${(p[3]/tot*100).toFixed(1)}%`})).sort((a,b)=>b.v-a.v);
+  barChart($('#chPkgs'),L.chP,tot,L.pil,pR,pR[0].v);
+  const ptot=PKG_STATS.reduce((a,p)=>a+p[2],0);
+  const kR=PKG_STATS.map(p=>({l:LANG==='ar'?p[0]:p[1],v:p[2],tip:`${p[2]} ${L.pkgs} · ${fmt(p[3])} ${L.pil}`})).sort((a,b)=>b.v-a.v);
+  barChart($('#chPkgN'),L.chPN,ptot,L.pkgs,kR,kR[0].v); }
+function renderPartners(){ $('#pgrid').innerHTML=PARTNER_GROUPS.map(g=>`<div class="card pp ${g[0]} rv noacc"><h3>${g[1][LANG]}</h3><div class="lg">${g[2].map(x=>x[0]==='sub'?`<span class="sublbl">${x[1][LANG]}</span>`:`<div title="${x[1]}"><img src="assets/logos/${x[0]}.png" alt="${x[1]}" loading="lazy"></div>`).join('')}</div></div>`).join(''); }
+// tooltip for chart bars
+const tip=$('#tip');
+addEventListener('pointermove',e=>{ const b=e.target.closest&&e.target.closest('.brow'); if(b&&b.dataset.tip){ tip.textContent=b.dataset.tip; tip.style.opacity=1; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-36)+'px'; } else tip.style.opacity=0; });
+// moments: two rings
+const ring=$('#ring'), ring2=$('#ring2');
+ring.innerHTML=PHOTOS.map(p=>`<figure><img src="assets/ph/${p}.webp" alt="" loading="lazy" draggable="false"></figure>`).join('');
+ring2.innerHTML=PHOTOS2.map(p=>`<figure><img src="assets/ph/${p}.webp" alt="" loading="lazy" draggable="false"></figure>`).join('');
+let ringRot=0, ringVel=0.05, dragging=false, lx=0;
+function ringLayout(){ [ring,ring2].forEach(rg=>{ const n=rg.children.length, w=rg.offsetWidth; const r=Math.round((w/2)/Math.tan(Math.PI/n))+24; [...rg.children].forEach((f,i)=>f.style.transform=`rotateY(${i*360/n}deg) translateZ(${r}px)`); rg.dataset.r=r; }); }
+const rw=$('#ringwrap');
+rw.addEventListener('pointerdown',e=>{dragging=true;lx=e.clientX;rw.setPointerCapture(e.pointerId);});
+rw.addEventListener('pointermove',e=>{if(!dragging)return; const dx=e.clientX-lx; lx=e.clientX; ringRot+=dx*0.25; ringVel=dx*0.05;});
+rw.addEventListener('pointerup',()=>dragging=false);
+
+// tilt
+function bindTilt(){ $$('.tilt').forEach(c=>{ c.onpointermove=e=>{const r=c.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5; c.style.transform=`perspective(700px) rotateY(${x*12}deg) rotateX(${-y*12}deg) translateZ(8px)`;}; c.onpointerleave=()=>c.style.transform=''; }); }
+// stairs parallax
+addEventListener('pointermove',e=>{ const x=e.clientX/innerWidth-.5, y=e.clientY/innerHeight-.5; $('#stairs').style.transform=`rotateX(${-14-y*8}deg) rotateY(${-24+x*16}deg)`; });
+
+// reveal + counters
+let io;
+function observe(){
+  io && io.disconnect();
+  io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); $$('.count',e.target).forEach(countUp); growBars(e.target);} }),{threshold:.22});
+  $$('section').forEach(s=>io.observe(s));
+}
+function countUp(el){ if(el.dataset.done) return; el.dataset.done=1; const to=+el.dataset.to, t0=performance.now(), d=1800;
+  const step=t=>{const k=Math.min(1,(t-t0)/d); const v=Math.round(to*(1-Math.pow(1-k,4))); el.textContent=fmt(v); if(k<1) requestAnimationFrame(step);}; requestAnimationFrame(step); }
+
+// QR
+
+
+// fullscreen
+$('#fsBtn').onclick=()=>{ try{ document.fullscreenElement? document.exitFullscreen(): document.documentElement.requestFullscreen(); }catch(e){} };
+
+/* ================= THREE ================= */
+const canvas=$('#gl');
+let renderer; try{ renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'}); }catch(e){ document.body.style.background='radial-gradient(circle at 30% 40%,#104C8A,#061A33 70%)'; finishLoad(); }
+const isMobile=()=>innerWidth<760;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x041428);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.004,500);
+let composer,bloom;
+const R=5;
+const v3=(x,y,z)=>new THREE.Vector3(x,y,z);
+function ll(lat,lon,r=R){ const phi=(90-lat)*Math.PI/180, th=(lon+180)*Math.PI/180; return v3(-r*Math.sin(phi)*Math.cos(th), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(th)); }
+const MK=ll(21.4225,39.8262,1).normalize();
+const UP=v3(0,1,0);
+const EAST=new THREE.Vector3().crossVectors(UP,MK).normalize();
+const NORTH=new THREE.Vector3().crossVectors(MK,EAST).normalize();
+const uTime={value:0};
+const PLACES={
+  jeddah:{ll:[21.68,39.17],ar:"جدة · مطار الملك عبدالعزيز",en:"Jeddah · KAIA",lvl:1},
+  makkah:{ll:[21.4225,39.8262],ar:"مكة المكرمة",en:"Makkah",lvl:0},
+  madinah:{ll:[24.4672,39.6111],ar:"المدينة المنورة",en:"Madinah",lvl:0},
+  mina:{ll:[21.413,39.893],ar:"منى",en:"Mina",lvl:2},
+  arafat:{ll:[21.355,39.984],ar:"عرفات",en:"Arafat",lvl:2},
+  muzdalifah:{ll:[21.389,39.937],ar:"مزدلفة",en:"Muzdalifah",lvl:2},
+  haram:{ll:[21.4225,39.8262],ar:"المسجد الحرام",en:"Masjid al-Haram",lvl:3},
+  jamarat:{ll:[21.4211,39.8727],ar:"جسر الجمرات",en:"Jamarat Bridge",lvl:3},
+  khayf:{ll:[21.4146,39.8939],ar:"مسجد الخيف",en:"Masjid al-Khayf",lvl:3},
+  mashar:{ll:[21.3833,39.9366],ar:"المشعر الحرام",en:"Al-Mash'ar al-Haram",lvl:3},
+  namirah:{ll:[21.352,39.9665],ar:"مسجد نمرة",en:"Masjid Namirah",lvl:3},
+  rahmah:{ll:[21.3549,39.984],ar:"جبل الرحمة",en:"Jabal al-Rahmah",lvl:3},
+  nabawi:{ll:[24.4672,39.6111],ar:"المسجد النبوي",en:"Al-Masjid an-Nabawi",lvl:3},
+};
+
+if(renderer){
+renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile()?1.6:1.75));
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+scene.add(new THREE.AmbientLight(0x406090,.4));
+const dl=new THREE.DirectionalLight(0xfff1d6,2.4); dl.position.copy(MK.clone().multiplyScalar(10).add(NORTH.clone().multiplyScalar(8))); scene.add(dl);
+const PIX={value:renderer.getPixelRatio()};
+const uCamH={value:20};      // camera height above the surface (drives LOD fades)
+
+const world=new THREE.Group(); scene.add(world);
+
+/* globe */
+const globeMesh=new THREE.Mesh(new THREE.SphereGeometry(R,512,256),new THREE.ShaderMaterial({vertexShader:`varying vec3 vN;varying vec3 vV;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`varying vec3 vN;varying vec3 vV;void main(){float f=pow(1.-max(dot(vN,vV),0.),2.6);vec3 base=vec3(.008,.04,.1);vec3 rim=mix(vec3(.12,.36,.85),vec3(.95,.78,.45),.12);gl_FragColor=vec4(base+rim*f*.55,1.);}`})); world.add(globeMesh);
+const atm=new THREE.Mesh(new THREE.SphereGeometry(R*1.2,64,64),new THREE.ShaderMaterial({side:THREE.BackSide,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,uniforms:{uO:{value:1}},
+ vertexShader:`varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform float uO;varying vec3 vN;void main(){float i=pow(clamp(.62-dot(vN,vec3(0,0,1.)),0.,1.),3.);gl_FragColor=vec4(vec3(.2,.45,.95)*i*.9*uO,i*uO);}`}));
+world.add(atm);
+
+/* dot layers: global (coarse), region (Arabia, KSA in gold), fine (Hijaz corridor) */
+function dotLayer(posArr,attrs,size,maxPx,fadeNear,fadeFar,showFrom=-1,showFull=0){
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(posArr,3));
+  for(const k in attrs) g.setAttribute(k,new THREE.Float32BufferAttribute(attrs[k],1));
+  const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uPix:PIX,uMk:{value:MK},uTime,uCamH,uSize:{value:size},uMax:{value:maxPx},uF:{value:new THREE.Vector2(fadeNear,fadeFar)},uFR:{value:new THREE.Vector2(showFrom,showFull)}},
+   vertexShader:`attribute float aRnd;attribute float aK;uniform float uPix;uniform vec3 uMk;uniform float uTime;uniform float uSize;uniform float uMax;uniform vec2 uF;uniform vec2 uFR;uniform float uCamH;
+   varying float vA;varying float vM;varying float vT;varying float vK;
+   void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vec3 n=normalize(normalMatrix*normalize(position));float f=dot(n,normalize(-mv.xyz));vA=smoothstep(-.15,.45,f);
+   vA*= (uF.x<0.)?1.:1.-smoothstep(uF.x,uF.y,uCamH); vA*= (uFR.x<0.)?1.:smoothstep(uFR.x,uFR.y,uCamH);
+   vK=aK;vM=smoothstep(.9965,1.,dot(normalize(position),uMk));vT=.65+.35*sin(uTime*1.5+aRnd*30.);
+   gl_PointSize=min(uSize*(1.+aRnd*.35)*uPix/-mv.z,uMax*uPix);gl_Position=projectionMatrix*mv;}`,
+   fragmentShader:`varying float vA;varying float vM;varying float vT;varying float vK;void main(){vec2 c=gl_PointCoord-.5;float d=length(c);if(d>.5)discard;float s=smoothstep(.5,.12,d);
+   vec3 col=mix(vec3(.42,.62,.95),vec3(1.,.8,.42),max(vK,vM));float a=s*vA*mix(.42,.7,vK)*vT;gl_FragColor=vec4(col*(.8+vK*.15+vM*.6),a);}`});
+  return new THREE.Points(g,m);
+}
+{ const P=[],rnd=[],k=[];
+  for(let i=0;i<LAND.length;i+=2){ const p=ll(LAND[i],LAND[i+1],R*1.004); P.push(p.x,p.y,p.z); rnd.push(Math.random()); k.push(LANDK[i/2]); }
+  world.add(dotLayer(P,{aRnd:rnd,aK:k},46,40,-1,0,2.5,4.5));
+  const P2=[],r2=[],k2=[];
+  for(let i=0;i<REG.length;i+=2){ const p=ll(REG[i],REG[i+1],R+.0006); P2.push(p.x,p.y,p.z); r2.push(Math.random()); k2.push(REGK[i/2]); }
+  world.add(dotLayer(P2,{aRnd:r2,aK:k2},6.5,6,5,9));
+  const P3=[],r3=[],k3=[];
+  for(let i=0;i<FINE.length;i+=3){ const p=ll(FINE[i],FINE[i+1],R+.0004); P3.push(p.x,p.y,p.z); r3.push(Math.random()); k3.push(1); }
+  world.add(dotLayer(P3,{aRnd:r3,aK:k3},1.3,3.6,.5,2.2));
+  const U=HIJAZ.ultra,P4=[],r4=[],k4=[]; for(let i=0;i<U.length;i+=2){ const p=ll(U[i],U[i+1],R+.00025); P4.push(p.x,p.y,p.z); r4.push(Math.random()); k4.push(1); }
+  world.add(dotLayer(P4,{aRnd:r4,aK:k4},.12,3,.03,.12)); }
+
+/* borders: KSA in gold, neighbours faint */
+const borderMat=new THREE.LineBasicMaterial({color:0xF3DDA6,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});
+{ const pts=[]; for(let i=0;i<KSA_B.length;i+=2) pts.push(ll(KSA_B[i],KSA_B[i+1],R+.0007)); world.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),borderMat)); }
+const nbMat=new THREE.LineBasicMaterial({color:0x9db8e6,transparent:true,opacity:0,depthWrite:false});
+NB.forEach(line=>{ const pts=[]; for(let i=0;i<line.length;i+=2) pts.push(ll(line[i],line[i+1],R+.0006)); world.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),nbMat)); });
+
+/* real map layers (Natural Earth): highways, city footprints, coastline */
+const fatMats=[];
+function fatLine(pts,color,width,op,hh=.0005){ const arr=[]; pts.forEach(p=>{const v=ll(p[0],p[1],R+hh); arr.push(v.x,v.y,v.z);}); const g=new LineGeometry(); g.setPositions(arr);
+  const m=new LineMaterial({color,linewidth:width,transparent:true,opacity:0,depthWrite:false}); m.userData.op=op; m.resolution.set(innerWidth,innerHeight); fatMats.push(m); const l=new Line2(g,m); l.computeLineDistances(); world.add(l); return l; }
+HIJAZ.roads.forEach(r=>fatLine(r.c, r.t==='Major Highway'?0xF3DDA6:0xD6B05F, r.t==='Major Highway'?2.2:1.3, r.t==='Major Highway'?.95:.6));
+HIJAZ.coast.forEach(c=>fatLine(c,0x8fc0ff,1.4,.7));
+const urbMat=new THREE.MeshBasicMaterial({color:0xE9C277,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+{ const geos=[]; HIJAZ.urban.forEach(poly=>{ const c2=poly.map(p=>new THREE.Vector2(p[1],p[0])); if(c2.length>1&&c2[0].equals(c2[c2.length-1])) c2.pop(); if(c2.length<4) return; const tris=THREE.ShapeUtils.triangulateShape(c2,[]);
+    const pos=[]; c2.forEach(v=>{ const w=ll(v.y,v.x,R+.0003); pos.push(w.x,w.y,w.z); }); const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(tris.flat()); geos.push(g);
+    fatLine(poly,0xF3DDA6,1.2,.8,.00045); });
+  world.add(new THREE.Mesh(mergeGeometries(geos),urbMat)); }
+
+/* arcs from countries to Makkah */
+let arcMesh,capPts;
+const arcMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ uniforms:{uProg:{value:0},uTime,uReg:{value:-1},uFade:{value:1}},
+ vertexShader:`attribute float aOff;attribute float aReg;varying float vU;varying float vOff;varying float vReg;void main(){vU=uv.x;vOff=aOff;vReg=aReg;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform float uProg;uniform float uTime;uniform float uReg;uniform float uFade;varying float vU;varying float vOff;varying float vReg;
+ void main(){float p=clamp(uProg*1.7-vOff*.7,0.,1.);if(vU>p)discard;float head=smoothstep(p-.12,p,vU)*step(p,.999);
+ float pulse=exp(-pow((vU-fract(uTime*.22+vOff*3.1))*16.,2.));float hi=(uReg<-.5||abs(vReg-uReg)<.5)?1.:.12;
+ vec3 c=mix(vec3(.35,.62,1.),vec3(1.,.8,.45),smoothstep(.2,1.,vU));
+ float a=(.22+pulse*.8+head*.9)*hi*uFade*(1.-smoothstep(.9,1.,vU));gl_FragColor=vec4(c*(.55+pulse*1.1+head*1.2),a);}`});
+const capMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uPix:PIX,uReg:arcMat.uniforms.uReg,uProg:arcMat.uniforms.uProg,uFade:arcMat.uniforms.uFade},
+ vertexShader:`attribute float aReg;uniform float uPix;uniform float uReg;varying float vH;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vec3 n=normalize(normalMatrix*normalize(position));vH=smoothstep(-.1,.4,dot(n,normalize(-mv.xyz)))*((uReg<-.5||abs(aReg-uReg)<.5)?1.:.2);gl_PointSize=min(110.*uPix/-mv.z,30.*uPix);gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`uniform float uProg;uniform float uFade;varying float vH;void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,0.,d);gl_FragColor=vec4(vec3(1.,.85,.5)*a*1.1,a*vH*min(1.,uProg*3.)*.8*uFade);}`});
+{ const geos=[]; const capPos=[]; const capReg=[];
+  const end=MK.clone().multiplyScalar(R*1.004);
+  COUNTRIES.forEach((c)=>{ const s=ll(c[2],c[3],R*1.004); const d=s.distanceTo(end);
+    const mid=s.clone().add(end).multiplyScalar(.5).normalize().multiplyScalar(R*(1.08+d*0.07));
+    const g=new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(s,mid,end),64,0.011,5,false);
+    const cnt=g.attributes.position.count; g.setAttribute('aOff',new THREE.BufferAttribute(new Float32Array(cnt).fill(Math.random()),1)); g.setAttribute('aReg',new THREE.BufferAttribute(new Float32Array(cnt).fill(c[4]),1));
+    g.deleteAttribute('normal'); geos.push(g); capPos.push(s.x,s.y,s.z); capReg.push(c[4]); });
+  arcMesh=new THREE.Mesh(mergeGeometries(geos),arcMat); world.add(arcMesh);
+  const cg=new THREE.BufferGeometry(); cg.setAttribute('position',new THREE.Float32BufferAttribute(capPos,3)); cg.setAttribute('aReg',new THREE.Float32BufferAttribute(capReg,1));
+  capPts=new THREE.Points(cg,capMat); world.add(capPts); }
+window.setRegion=(r)=>{ arcMat.uniforms.uReg.value=r; };
+
+/* Makkah beacon (only from afar) */
+const beacon=new THREE.Group(); world.add(beacon);
+{ const beamG=new THREE.CylinderGeometry(.015,.09,3.2,24,1,true); beamG.translate(0,1.6,0);
+  const beam=new THREE.Mesh(beamG,new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{uTime},
+   vertexShader:`varying float vY;void main(){vY=position.y/3.2;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+   fragmentShader:`uniform float uTime;varying float vY;void main(){float a=pow(1.-vY,2.)*(.8+.2*sin(uTime*3.));gl_FragColor=vec4(vec3(1.,.82,.48)*a*1.4,a*.8);}`}));
+  beam.position.copy(MK).multiplyScalar(R); beam.quaternion.setFromUnitVectors(UP,MK); beacon.add(beam);
+  for(let i=0;i<3;i++){ const rm=new THREE.Mesh(new THREE.RingGeometry(.92,1,72),new THREE.MeshBasicMaterial({color:0xF3DDA6,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+    rm.position.copy(MK).multiplyScalar(R*1.006); rm.lookAt(MK.clone().multiplyScalar(20)); rm.userData.ph=i/3; beacon.add(rm); } }
+
+/* place markers (scale with zoom) */
+const markers={};
+for(const k in PLACES){ const p=PLACES[k]; const g=new THREE.Group(); const pos=ll(p.ll[0],p.ll[1],R+.0008); g.position.copy(pos);
+  const orb=new THREE.Mesh(new THREE.SphereGeometry(1,20,20),new THREE.MeshBasicMaterial({color:0xFFE3A3,transparent:true}));
+  const halo=new THREE.Mesh(new THREE.RingGeometry(1.9,2.3,48),new THREE.MeshBasicMaterial({color:0xF3DDA6,transparent:true,opacity:.6,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+  g.add(orb,halo); g.userData={orb,halo,key:k,pos}; world.add(g); markers[k]=g; }
+
+/* journey routes (drawn with a travelling head) */
+function routeMat(){ return new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uP:{value:0},uTime},
+  vertexShader:`varying float vU;void main(){vU=uv.x;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform float uP;uniform float uTime;varying float vU;void main(){if(vU>uP)discard;float head=smoothstep(uP-.08,uP,vU);float pulse=exp(-pow((vU-fract(uTime*.35))*14.,2.));
+  gl_FragColor=vec4(vec3(1.,.8,.42)*(.55+head*.9+pulse*.5),.75);}`}); }
+function route(a,b,h,rad){ const A=ll(a[0],a[1],R+.0005),B=ll(b[0],b[1],R+.0005); const d=A.distanceTo(B);
+  const M=A.clone().add(B).multiplyScalar(.5).normalize().multiplyScalar(R+.0005+d*h);
+  const m=new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(A,M,B),96,rad,6,false),routeMat()); world.add(m); return m; }
+const L=k=>PLACES[k].ll;
+const ROUTES=[ // [mesh, step index, sub-order within step]
+ [route([48.5,9],L('jeddah'),.35,.012),0,0,1],
+ [route(L('jeddah'),L('makkah'),.35,.0016),3,0,2],
+ [route(L('makkah'),L('madinah'),.3,.0028),5,0,2],
+ [route(L('makkah'),L('mina'),.25,.0001),6,0],[route(L('mina'),L('arafat'),.25,.0001),6,1],[route(L('arafat'),L('muzdalifah'),.25,.0001),6,2],[route(L('muzdalifah'),L('mina'),.25,.0001),6,3],
+ [route(L('mina'),L('makkah'),.25,.0001),7,0],
+ [route(L('makkah'),L('jeddah'),.35,.0016),8,0,2],[route(L('jeddah'),[51.5,-0.1],.35,.012),8,1,1],
+];
+
+/* stars */
+let starMat;
+{ const n=isMobile()?900:1800, p=new Float32Array(n*3), s=new Float32Array(n);
+  for(let i=0;i<n;i++){ const v=new THREE.Vector3().randomDirection().multiplyScalar(60+Math.random()*160); p.set([v.x,v.y,v.z],i*3); s[i]=Math.random(); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(p,3)); g.setAttribute('aS',new THREE.BufferAttribute(s,1));
+  scene.add(new THREE.Points(g,starMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uTime,uPix:PIX,uO:{value:1}},
+   vertexShader:`attribute float aS;uniform float uTime;uniform float uPix;varying float vA;varying float vG;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vA=.35+.65*abs(sin(uTime*.6+aS*40.));vG=step(.82,aS);gl_PointSize=(1.2+aS*2.2)*uPix*(vG>.5?1.8:1.);gl_Position=projectionMatrix*mv;}`,
+   fragmentShader:`uniform float uO;varying float vA;varying float vG;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(mix(vec3(.7,.8,1.),vec3(1.,.83,.5),vG),vA*smoothstep(.5,.1,d)*uO);}`}))); }
+
+/* ===== the gold R — traced 1:1 from the official logo, never redrawn ===== */
+const RPOS=EAST.clone().multiplyScalar(-14).add(MK.clone().multiplyScalar(1));
+const RH=7;
+const RBEHIND=MK.clone().multiplyScalar(-10).add(NORTH.clone().multiplyScalar(6.5)).add(EAST.clone().multiplyScalar(1.2));
+let cP=0;                          // height of the R in world units
+const rGroup=new THREE.Group(); scene.add(rGroup);
+rGroup.position.copy(RPOS);
+rGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(EAST,NORTH,MK));
+const rSpin=new THREE.Group(); rGroup.add(rSpin);
+const uR={value:0}; window.__uR=uR;
+const rMat=new THREE.MeshPhysicalMaterial({color:0xE2BA6A,metalness:1,roughness:.32,clearcoat:1,clearcoatRoughness:.1,envMapIntensity:1.5,emissive:0x6a4a14,emissiveIntensity:.3});
+rMat.onBeforeCompile=(sh)=>{ sh.uniforms.uR=uR;
+  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vOP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvOP=position;');
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vOP;uniform float uR;')
+   .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+     float lvl=mix(.56,-.56,uR); float dd=vOP.y-lvl; if(dd<-.0) discard;
+     totalEmissiveRadiance+=vec3(1.,.8,.45)*smoothstep(.05,0.,dd)*1.1*(1.-step(.999,uR));`); };
+{ const geos=RSHAPE.map(s=>{ const sh=new THREE.Shape(s.o.map(p=>new THREE.Vector2(p[0],p[1]))); return new THREE.ExtrudeGeometry(sh,{depth:.05,bevelEnabled:true,bevelThickness:.014,bevelSize:.008,bevelSegments:4,curveSegments:24}); });
+  const g=mergeGeometries(geos); g.translate(0,0,-.025); const m=new THREE.Mesh(g,rMat); m.scale.setScalar(RH); rSpin.add(m); }
+// gold dust that gathers into the R
+const RD=RPTS.length/2; const rdG=new THREE.BufferGeometry(); const rdT=new Float32Array(RD*3), rdS=new Float32Array(RD*3), rdO=new Float32Array(RD);
+for(let i=0;i<RD;i++){ rdT.set([RPTS[i*2]*RH,RPTS[i*2+1]*RH,.2],i*3); const v=new THREE.Vector3().randomDirection().multiplyScalar(4+Math.random()*9); rdS.set([v.x,v.y,v.z*.6],i*3); rdO[i]=Math.random(); }
+rdG.setAttribute('position',new THREE.BufferAttribute(rdT,3)); rdG.setAttribute('aS',new THREE.BufferAttribute(rdS,3)); rdG.setAttribute('aO',new THREE.BufferAttribute(rdO,1));
+rSpin.add(new THREE.Points(rdG,new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uR,uPix:PIX,uTime},
+ vertexShader:`attribute vec3 aS;attribute float aO;uniform float uR;uniform float uPix;uniform float uTime;varying float vA;
+ void main(){float k=smoothstep(aO*.45,aO*.45+.5,uR);vec3 p=mix(aS,position,k);p+=vec3(sin(uTime+aO*20.),cos(uTime*.8+aO*12.),0.)*.15*(1.-k);
+ vec4 mv=modelViewMatrix*vec4(p,1.);vA=smoothstep(0.,.12,uR)*(1.-smoothstep(.8,1.,uR)*.85);gl_PointSize=(30.+aO*30.)*uPix/-mv.z;gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`varying float vA;void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,0.,d);gl_FragColor=vec4(vec3(1.,.85,.55)*a*.85,a*vA*.75);}`})));
+const rLight=new THREE.PointLight(0xfff0d0,40,18); scene.add(rLight);
+
+/* post */
+composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.7,.5,.72);
+composer.addPass(bloom); composer.addPass(new OutputPass());
+
+/* ================= CAMERA CHOREOGRAPHY ================= */
+const M=MK, E=EAST, Nn=NORTH, O=v3(0,0,0);
+const C=(m,e,n)=>M.clone().multiplyScalar(m).add(E.clone().multiplyScalar(e)).add(Nn.clone().multiplyScalar(n));
+const RP=(m,e,n)=>RPOS.clone().add(C(m,e,n));
+// look down at a spot on the map: height above ground + tilt towards south
+function surf(lat,lon,h,tilt=.55,s=.2,y=0){ const T=ll(lat,lon,R); const n=T.clone().normalize();
+  const nn=ll(lat+.3,lon,R).sub(ll(lat-.3,lon,R)).normalize();
+  return {p:T.clone().add(n.multiplyScalar(h)).sub(nn.multiplyScalar(h*tilt)), t:T, s, y}; }
+const STOPS={
+ hero:    {p:C(22,-9,6), t:C(0,-1.4,0), s:.25},
+ world:   {p:C(16.5,1.5,4), t:C(2,0,.6), s:.25},
+ about:   surf(24,44.5,5.6,.5,.22),
+ services:surf(22.8,41.5,3.6,.75,0,.1),
+ packages:surf(21.47,39.95,.42,.7,0,.12),
+ camps:   surf(21.395,39.905,.03,.55,0,-.2),
+ numbers: {p:C(30,-4,7), t:C(0,1.5,0), s:.24},
+ reach:   {p:C(25,7,10), t:C(0,2.5,0), s:0, y:.08},
+ pkstats: {p:C(21,-13,3), t:C(0,-2,0), s:0, y:.06},
+ ihsan:   {p:RP(15,0,.5), t:RP(0,0,-.6), s:0, y:.08},
+ why:     {p:RP(21,-9,2.5), t:RP(0,-1.6,-2), s:0, y:.08},
+ moments: {p:RP(26,0,1), t:RP(0,0,0), s:0},
+ partners:{p:RP(17,10,1), t:RP(0,7,0), s:0, y:.08},
+ closing: {p:C(46,0,4), t:C(0,0,4.6), s:.25},
+};
+const JV=[ // one map view per journey step
+ surf(30,30,14,.25,.16), surf(25,40,7,.45,.16), surf(21.66,39.2,.16,.7,.16), surf(21.55,39.5,.38,.7,.16), surf(21.42,39.828,.014,.75,.16),
+ surf(23.1,39.7,1.7,.6,.16), surf(21.385,39.925,.017,.85,.16), surf(21.413,39.86,.02,.8,.16), surf(25,36,9,.3,.16)];
+function journeyCam(q){ const x=THREE.MathUtils.clamp(q*9-.5,0,8); const i=Math.floor(x), f=ease(x-i), A=JV[i], B=JV[Math.min(8,i+1)];
+  // travel in a gentle arc: lift the camera mid-way when moving between distant views
+  const p=A.p.clone().lerp(B.p,f); const lift=Math.sin(f*Math.PI)*Math.min(2.5,A.p.distanceTo(B.p)*.35); p.add(p.clone().normalize().multiplyScalar(lift));
+  return {p, t:A.t.clone().lerp(B.t,f), s:.16}; }
+layout=function(){
+  secs=$$('section[data-nav]').map(el=>{ const top=el.offsetTop, h=el.offsetHeight, vh=innerHeight;
+    return {id:el.id, el, a:top-vh*.12, b:top+Math.max(0,h-vh)+vh*.12, top, h}; });
+}
+const ease=(x)=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+function camFor(sec,q){ if(sec.id==='journey') return journeyCam(q); return STOPS[sec.id]; }
+let curShift=0,curShiftY=0;
+const camP=STOPS.hero.p.clone(), camT=STOPS.hero.t.clone();
+function computeCam(y){
+  for(let i=0;i<secs.length;i++){ const s=secs[i];
+    if(y>=s.a && y<=s.b){ const q=s.id==='journey'?THREE.MathUtils.clamp((y-s.top)/Math.max(1,s.h-innerHeight),0,1):0; return {...camFor(s,q),sec:s,q}; }
+    const n=secs[i+1]; if(n && y>s.b && y<n.a){ const k=ease((y-s.b)/(n.a-s.b)); const A=camFor(s,1), B=camFor(n,0);
+      // fly through space on big moves (zoom out, then in)
+      const p=A.p.clone().lerp(B.p,k); const far=A.p.distanceTo(B.p); const mid=A.t.clone().lerp(B.t,k);
+      const lift=Math.sin(k*Math.PI)*Math.min(14,far*.45); p.add(p.clone().sub(mid).normalize().multiplyScalar(lift));
+      return {p, t:mid, s:THREE.MathUtils.lerp(A.s,B.s,k), y:THREE.MathUtils.lerp(A.y||0,B.y||0,k), sec:k<.5?s:n, q:k<.5?1:0, k}; } }
+  return {...STOPS.closing,sec:secs[secs.length-1],q:0};
+}
+
+/* labels */
+const labelBox=$('#labels');
+function buildLabels(){ labelBox.innerHTML=Object.keys(PLACES).map(k=>`<div class="lab" data-k="${k}"><i></i><span>${PLACES[k][LANG]}</span></div>`).join(''); }
+buildLabels(); window.rebuildLabels=buildLabels;
+
+/* ================= RESIZE ================= */
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); composer.setSize(w,h); bloom.setSize(w,h);
+  camera.aspect=w/h; camera.fov=w<760?58:42; camera.updateProjectionMatrix(); fatMats.forEach(m=>m.resolution.set(w,h)); layout(); ringLayout(); }
+addEventListener('resize',resize);
+
+/* ================= LOOP ================= */
+let arcP=0;
+const clock=new THREE.Clock();
+const KSA_SECS={about:1,journey:1,services:1,packages:1,camps:1};
+const tv=new THREE.Vector3();
+function frame(){
+  const dt=Math.min(.12,clock.getDelta()); uTime.value+=dt;
+  const y=scrollY; const st=computeCam(y); const sid=st.sec?st.sec.id:'hero';
+  const mobK=isMobile()&&!(sid==='journey'||KSA_SECS[sid])?1.4:1; const stp=st.p.clone().sub(st.t).multiplyScalar(mobK).add(st.t);
+  const sm=1-Math.pow(.002,dt); camP.lerp(stp,sm); camT.lerp(st.t,sm);
+  const camH=camP.length()-R; uCamH.value=camH; 
+  const drift=Math.pow(Math.min(1,camH/8),2)*(sid==='hero'?1:.35);
+  camera.position.copy(camP).add(v3(Math.sin(uTime.value*.13)*.6*drift,Math.cos(uTime.value*.11)*.4*drift,0)); camera.up.copy(Nn); camera.lookAt(camT);
+  const mob=isMobile(); const dirSign=document.documentElement.dir==='rtl'?1:-1;
+  const tgtS=mob?0:(st.s||0)*dirSign; const tgtY=mob?.17:(st.y||0);
+  curShift+=(tgtS-curShift)*Math.min(1,dt*3); curShiftY+=(tgtY-curShiftY)*Math.min(1,dt*3);
+  const W=innerWidth,H=innerHeight; camera.setViewOffset(W,H,curShift*W,curShiftY*H,W,H);
+  // arcs
+  const ws=secs.find(s=>s.id==='world'); const want=ws? THREE.MathUtils.clamp((y-(ws.top-innerHeight*.9))/(innerHeight*.9),0,1):1;
+  arcP=Math.max(arcP, Math.min(1,uTime.value*.16), want); arcMat.uniforms.uProg.value=arcP;
+  const near=THREE.MathUtils.smoothstep(camH,2,9);         // 0 when close to the ground
+  const FADE={services:.15,packages:.3,about:.55,numbers:.5,reach:.5,pkstats:.35,ihsan:.25,why:.3,moments:.25,partners:.35,closing:.55};
+  const fT=(FADE[sid]!==undefined?FADE[sid]:1)*(near<.15?0:near);
+  arcMat.uniforms.uFade.value+=(fT-arcMat.uniforms.uFade.value)*Math.min(1,dt*2.5);
+  arcMesh.visible=capPts.visible=arcMat.uniforms.uFade.value>.01;
+  beacon.visible=camH>2.5&&!KSA_SECS[sid]; globeMesh.visible=camH>.7; starMat.uniforms.uO.value=THREE.MathUtils.smoothstep(camH,.4,2); atm.material.uniforms.uO.value=THREE.MathUtils.smoothstep(camH,1,6);
+  // map layer
+  const mapOn=KSA_SECS[sid]?1:THREE.MathUtils.clamp(1-(camH-6)/10,0,1)*.6;
+  borderMat.opacity+=(mapOn*.9-borderMat.opacity)*Math.min(1,dt*3); nbMat.opacity=borderMat.opacity*.25;
+  const roadOn=(KSA_SECS[sid]?1:0)*THREE.MathUtils.smoothstep(camH,5,1.5);
+  fatMats.forEach(m=>{ m.opacity+=(roadOn*m.userData.op-m.opacity)*Math.min(1,dt*3); });
+  urbMat.opacity+=(roadOn*.22-urbMat.opacity)*Math.min(1,dt*3);
+  // journey state
+  let step=-1, jx=-1;
+  if(sid==='journey'){ jx=st.q*9; step=Math.min(8,Math.floor(jx)); }
+  const js=secs.find(s=>s.id==='journey'); const afterJ=js && y>js.b;
+  ROUTES.forEach(([m,si,sub,intl])=>{ let p;
+    if(afterJ) p=1; else if(jx<0) p=0; else p=THREE.MathUtils.clamp(((jx-si)*(si===6?4.2:1.8))-sub,0,1);
+    m.material.uniforms.uP.value+= (p-m.material.uniforms.uP.value)*Math.min(1,dt*4);
+    m.visible=m.material.uniforms.uP.value>.003 && (KSA_SECS[sid] || camH<12) && (!intl || (intl===1?camH>2.2:camH>.4)); });
+  const ACT=[null,null,'jeddah','makkah','makkah','madinah','mina','makkah','jeddah'];
+  const act=step>=0?ACT[step]:(sid==='camps'?'mina':null);
+  const camD=camera.position.distanceTo(camT);
+  for(const k in markers){ const g=markers[k]; const p=PLACES[k]; const on=k===act;
+    const sc=camD*(on?.008:.005)*(p.lvl===3?.7:1)*(1+(on?Math.sin(uTime.value*4)*.12:0));
+    g.scale.setScalar(sc); g.userData.halo.lookAt(camera.position);
+    const band=(lo,hi)=>(camH>lo&&camH<hi?1:0);
+    const vis=((sid==='about'||sid==='journey'||sid==='camps')?1:0)*(p.lvl===3?band(.002,.06):p.lvl===2?band(.009,1.2):p.lvl===1?band(.08,4):band(.03,9));
+    g.userData.orb.material.opacity=vis; g.userData.halo.material.opacity=vis*(on?1:.45); g.visible=vis>.01; g.userData.vis=vis; }
+  if(step!==lastStep && step>=0){ lastStep=step; $$('.jstep').forEach(e=>e.classList.toggle('on',+e.dataset.i===step)); $('#railn').textContent=String(step+1).padStart(2,'0')+' / 09'; }
+  if(sid==='journey'){ $$('#rail span i').forEach((e,i)=>{ e.style.transform=`scaleX(${THREE.MathUtils.clamp(st.q*9-i,0,1)})`; }); }
+  // labels
+  camera.updateMatrixWorld();
+  $$('.lab',labelBox).forEach(el=>{ const g=markers[el.dataset.k]; const v=g.userData.vis||0;
+    tv.copy(g.userData.pos).project(camera); const x=(tv.x*.5+.5)*W, yy=(-tv.y*.5+.5)*H;
+    const facing=g.userData.pos.clone().normalize().dot(camera.position.clone().sub(g.userData.pos).normalize())>0;
+    el.style.opacity=(facing&&tv.z<1)?v:0; el.style.transform=`translate(${x}px,${yy}px)`; el.classList.toggle('on',el.dataset.k===act); });
+  // beacon rings
+  beacon.children.forEach(c=>{ if(c.userData.ph!==undefined){ const k=(uTime.value*.45+c.userData.ph)%1; c.scale.setScalar(.05+k*.9); c.material.opacity=(1-k)*.8; }});
+  // the R: forms slowly once you reach "ihsan", then breathes
+  const ih=secs.find(s=>s.id==='ihsan'); const rWant=ih?THREE.MathUtils.clamp((y-(ih.top-innerHeight*.75))/(innerHeight*.6),0,1):0;
+  const rTarget=rWant>.02?1:(y<ih.top-innerHeight*1.6?0:uR.value);
+  uR.value+=(rTarget-uR.value)*Math.min(1,dt*.42);
+  rGroup.visible=uR.value>.002;
+  cP+=((sid==='closing'?1:0)-cP)*Math.min(1,dt*.7);
+  const ce=cP*cP*(3-2*cP);
+  rGroup.position.copy(RPOS).lerp(RBEHIND,ce); rGroup.scale.setScalar(1+ce*2.5);
+  rSpin.rotation.y=Math.sin(uTime.value*.22)*.42*(1-ce*.8); rSpin.rotation.x=Math.sin(uTime.value*.17)*.06; rSpin.position.y=Math.sin(uTime.value*.5)*.12;
+  rLight.position.copy(rGroup.position).add(C(4,Math.sin(uTime.value*.6)*5,Math.cos(uTime.value*.4)*3)); rLight.intensity=7*uR.value;
+  if(st.sec){ $$('#dots a').forEach(a=>a.classList.toggle('on',a.dataset.id===sid)); }
+  if(!dragging){ ringRot+=ringVel; ringVel+=(0.06-ringVel)*.02; } ring.style.transform=`translateZ(-${ring.dataset.r||400}px) rotateY(${ringRot}deg)`; ring2.style.transform=`translateZ(-${ring2.dataset.r||400}px) rotateY(${-ringRot*0.8+14}deg)`;
+  composer.render();
+  requestAnimationFrame(frame);
+}
+render(); resize();
+requestAnimationFrame(()=>{ frame(); finishLoad(); });
+} else { render(); }
+
+function finishLoad(){ $('#lbar').style.width='100%'; setTimeout(()=>{ $('#loader').classList.add('done'); $('#hero').classList.add('in'); },700); }
+document.fonts && document.fonts.ready.then(()=>{ $('#lbar').style.width='70%'; if(renderer) layout(); });
+
+/* ================= ONE GESTURE = ONE STEP ================= */
+function stops(){ const vh=innerHeight, out=[];
+  secs.forEach(s=>{ if(s.id==='journey'){ for(let i=0;i<9;i++) out.push(s.top+((i+.5)/9)*(s.h-vh)); return; }
+    out.push(s.top); const extra=s.h-vh; if(extra>vh*.3){ for(let y=s.top+vh*.75;y<s.top+extra-vh*.1;y+=vh*.75) out.push(y); out.push(s.top+extra); } });
+  return [...new Set(out.map(v=>Math.round(v)))].sort((a,b)=>a-b); }
+let stepping=false, gestureUsed=false, lastWheel=0, stepTimer=null;
+function go(dir){ const S=stops(), y=scrollY; let t;
+  if(dir>0) t=S.find(v=>v>y+4); else t=[...S].reverse().find(v=>v<y-4);
+  if(t===undefined) return;
+  if(typeof auto!=='undefined' && auto) stopAuto();
+  const inJ=secs.find(x=>x.id==='journey'); const jump=Math.abs(t-y);
+  const d=Math.min(1700,Math.max(1050, jump/innerHeight*700));
+  stepping=true; smoothTo(t,d); clearTimeout(stepTimer); stepTimer=setTimeout(()=>stepping=false,d+80); }
+addEventListener('wheel',e=>{ if(e.ctrlKey) return; e.preventDefault(); const now=performance.now(); const gap=now-lastWheel; lastWheel=now;
+  if(gap>380) gestureUsed=false; if(stepping||gestureUsed||Math.abs(e.deltaY)<4) return; gestureUsed=true; go(Math.sign(e.deltaY)); },{passive:false});
+let ty0=null;
+addEventListener('touchstart',e=>{ if(e.target.closest('#ringwrap')) { ty0=null; return; } ty0=e.touches[0].clientY; },{passive:true});
+addEventListener('touchmove',e=>{ if(ty0!==null) e.preventDefault(); },{passive:false});
+addEventListener('touchend',e=>{ if(ty0===null) return; const dy=ty0-(e.changedTouches[0].clientY); ty0=null; if(Math.abs(dy)>36 && !stepping) go(Math.sign(dy)); },{passive:true});
+addEventListener('keydown',e=>{ const k=e.key; if(['ArrowDown','PageDown',' '].includes(k)){ e.preventDefault(); if(!stepping) go(1);} else if(['ArrowUp','PageUp'].includes(k)){ e.preventDefault(); if(!stepping) go(-1);} });
+
+/* ================= AUTO TOUR / KIOSK ================= */
+let auto=false, autoTimer=null, idleTimer=null, tweenId=0;
+function smoothTo(y,d=2200){ const id=++tweenId; const y0=scrollY, t0=performance.now();
+  const st=t=>{ if(id!==tweenId) return; const k=Math.min(1,(t-t0)/d); scrollTo(0,y0+(y-y0)*(k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2)); if(k<1) requestAnimationFrame(st); }; requestAnimationFrame(st); }
+function tourStops(){ const J=secs.find(s=>s.id==='journey'); return stops().map(y=>{ const inJ=J&&y>J.top-2&&y<J.top+J.h; const s=[...secs].reverse().find(x=>x.top<=y+2); const id=s?s.id:'hero';
+  return {y,d:inJ?5200:(id==='moments'||id==='ihsan'||id==='packages'||id==='partners')?9000:7500,tw:inJ?1800:2400}; }); }
+let tourIdx=0;
+function nextStop(){ if(!auto) return; const S=tourStops(); const s=S[tourIdx%S.length];
+  if(tourIdx%S.length===0 && scrollY>innerHeight){ scrollTo(0,0); } else smoothTo(s.y,s.tw);
+  tourIdx++; autoTimer=setTimeout(nextStop,s.d+s.tw); }
+function startAuto(){ if(auto) return; auto=true; document.body.classList.add('auto'); const S=tourStops(); tourIdx=Math.max(0,S.findIndex(s=>s.y>=scrollY-10)); nextStop(); }
+function stopAuto(){ auto=false; tweenId++; clearTimeout(autoTimer); document.body.classList.remove('auto'); }
+window.stopAuto=stopAuto; window.smoothTo=smoothTo;
+$('#autoBtn').onclick=(e)=>{ e.stopPropagation(); auto?stopAuto():startAuto(); };
+const isKiosk=location.hash==='#kiosk';
+if(isKiosk){ document.body.classList.add('kiosk'); }
+['pointerdown','wheel','touchstart','keydown'].forEach(ev=>addEventListener(ev,(e)=>{
+  if(e.target && e.target.closest && e.target.closest('#autoBtn')) return;
+  if(auto) stopAuto();
+  if(isKiosk){ clearTimeout(idleTimer); idleTimer=setTimeout(startAuto,45000); }
+},{passive:true}));
+if(isKiosk) setTimeout(startAuto,4000);
+</script>
+</body>
+</html>
